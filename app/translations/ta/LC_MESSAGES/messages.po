@@ -1,0 +1,199 @@
+# Tamil translations for PROJECT.
+# Copyright (C) 2025 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2025-08-05 12:37+0530\n"
+"PO-Revision-Date: 2025-07-31 16:38+0530\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ta\n"
+"Language-Team: ta <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+#: app/templates/index.html:2
+msgid "Welcome | Canteen Management System"
+msgstr "வரவேற்பு | கேண்டீன் மேலாண்மை அமைப்பு"
+
+#: app/templates/employee/book.html:231 app/templates/index.html:310
+msgid "Language"
+msgstr "மொழி"
+
+#: app/templates/employee/book.html:234 app/templates/index.html:313
+msgid "English"
+msgstr "ஆங்கிலம்"
+
+#: app/templates/employee/book.html:235 app/templates/index.html:314
+msgid "Tamil"
+msgstr "தமிழ்"
+
+#: app/templates/employee/book.html:236 app/templates/index.html:315
+msgid "Hindi"
+msgstr "இந்தி"
+
+#: app/templates/index.html:322
+msgid "Violin Technologies Pvt Ltd"
+msgstr "வயலின் டெக்னாலஜிஸ் பிரைவேட் லிமிடெட்"
+
+#: app/templates/index.html:325
+msgid "Violin Technologies Logo"
+msgstr "வயலின் டெக்னாலஜிஸ் லோகோ"
+
+#: app/templates/index.html:325
+msgid "Logo not found"
+msgstr "லோகோ காணப்படவில்லை"
+
+#: app/templates/index.html:328
+msgid "Smart Canteen Management System (CMS)"
+msgstr "ஸ்மார்ட் கேண்டீன் மேலாண்மை அமைப்பு (CMS)"
+
+#: app/templates/index.html:329
+msgid "Smart Canteen Management System for Employees"
+msgstr "ஊழியர்களுக்கான ஸ்மார்ட் கேண்டீன் மேலாண்மை அமைப்பு"
+
+#: app/templates/index.html:334
+msgid "Violin Technology Employee Login"
+msgstr "வயலின் டெக்னாலஜி ஊழியர் உள்நுழைவு"
+
+#: app/templates/index.html:340
+msgid "Canteen Supervisor Login"
+msgstr "கேண்டீன் மேற்பார்வையாளர் உள்நுழைவு"
+
+#: app/templates/index.html:346
+msgid "Admin/HR/Finance Login"
+msgstr "நிர்வாகி/மனிதவளம்/நிதி உள்நுழைவு"
+
+#: app/templates/index.html:352
+msgid "Violin Technologies Pvt. Ltd. All rights reserved."
+msgstr ""
+"வயலின் டெக்னாலஜிஸ் பிரைவேட் லிமிடெட். அனைத்து உரிமைகளும் "
+"பாதுகாக்கப்பட்டவை."
+
+#: app/templates/index.html:285
+msgid "Employee Login"
+msgstr "ஊழியர் உள்நுழைவு"
+
+#: app/templates/index.html:293
+msgid "Staff Login"
+msgstr "பணியாளர் உள்நுழைவு"
+
+#: app/templates/index.html:301
+msgid "Admin Login"
+msgstr "நிர்வாகி உள்நுழைவு"
+
+#: app/templates/employee/book.html:2 app/templates/employee/book.html:248
+msgid "Book a Meal"
+msgstr "உணவை முன்பதிவு செய்யுங்கள்"
+
+#: app/templates/employee/book.html:239 app/templates/employee/history.html:246
+msgid "Back to Dashboard"
+msgstr "டாஷ்போர்டுக்குத் திரும்பு"
+
+#: app/templates/employee/book.html:254
+msgid "Face Detection (Capture)"
+msgstr "முகத்தைக் கண்டறிதல் (பிடிப்பு)"
+
+#: app/templates/employee/book.html:256
+msgid "Open Webcam"
+msgstr "வெப்கேமைத் திற"
+
+#: app/templates/employee/book.html:260
+msgid "Capture Face"
+msgstr "முகத்தைப் பிடி"
+
+#: app/templates/employee/book.html:262
+msgid "Face Preview"
+msgstr "முகத்தின் மாதிரிக்காட்சி"
+
+#: app/templates/employee/book.html:287
+msgid "Your Meal QR Code"
+msgstr "உங்கள் உணவு QR குறியீடு"
+
+#: app/templates/employee/book.html:288
+msgid "Meal QR Code"
+msgstr "உணவு QR குறியீடு"
+
+#: app/templates/employee/book.html:291
+msgid "Download QR Code"
+msgstr "QR குறியீட்டைப் பதிவிறக்கவும்"
+
+#: app/templates/employee/book.html:298
+msgid "Breakfast"
+msgstr "காலை உணவு"
+
+#: app/templates/employee/book.html:299
+msgid "Lunch"
+msgstr "மதிய உணவு"
+
+#: app/templates/employee/book.html:300
+msgid "Dinner"
+msgstr "இரவு உணவு"
+
+#: app/templates/employee/history.html:2
+msgid "Booking History"
+msgstr "முன்பதிவு வரலாறு"
+
+#: app/templates/employee/history.html:254
+msgid "My Bookings"
+msgstr "எனது முன்பதிவுகள்"
+
+#: app/templates/employee/history.html:259
+msgid "Start Date"
+msgstr "தொடக்க தேதி"
+
+#: app/templates/employee/history.html:262
+msgid "End Date"
+msgstr "முடிவு தேதி"
+
+#: app/templates/employee/history.html:265
+msgid "Filter"
+msgstr "வடிகட்டி"
+
+#: app/templates/employee/history.html:266
+msgid "Clear"
+msgstr "நீக்கு"
+
+#: app/templates/employee/history.html:274
+msgid "SI.No"
+msgstr "வரிசை எண்"
+
+#: app/templates/employee/history.html:275
+msgid "Date"
+msgstr "தேதி"
+
+#: app/templates/employee/history.html:276
+msgid "Shift"
+msgstr "ஷிஃப்ட்"
+
+#: app/templates/employee/history.html:277
+msgid "Status"
+msgstr "நிலை"
+
+#: app/templates/employee/history.html:278
+#: app/templates/employee/history.html:318
+msgid "QR Code"
+msgstr "QR குறியீடு"
+
+#: app/templates/employee/history.html:294
+msgid "Click to view larger QR code"
+msgstr "பெரிய QR குறியீட்டைக் காண கிளிக் செய்யவும்"
+
+#: app/templates/employee/history.html:296
+msgid "N/A"
+msgstr "பொருந்தாது"
+
+#: app/templates/employee/history.html:305
+msgid "No bookings found."
+msgstr "முன்பதிவுகள் எதுவும் இல்லை."
+
+#: app/templates/employee/history.html:319
+msgid "Close"
+msgstr "மூடு"
+

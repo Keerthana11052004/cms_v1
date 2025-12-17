@@ -1,0 +1,559 @@
+{% extends 'base_logged_in.html' %}
+{% block title %}Vendor Report{% endblock %}
+{% block main_content %}
+<style>
+  .back-btn {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 1000;
+    background: #6c757d;
+    border: none;
+    color: #fff;
+    font-size: 1.2rem;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .back-btn:hover {
+    background: #5a6268;
+    transform: scale(1.08);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  }
+  .vendor-report-card {
+    font-size: 1.1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    border-radius: 1rem;
+  }
+  .vendor-report-card .card-header {
+    font-size: 1.8rem;
+    font-weight: 700;
+    padding: 1.5rem 1.5rem 0.8rem 1.5rem;
+    background: linear-gradient(90deg, #1976d2 0%, #64b5f6 100%);
+    color: #fff;
+    border-radius: 1rem 1rem 0 0;
+    text-align: center;
+  }
+  .vendor-report-card .card-body {
+    padding: 1.8rem 1.8rem 1.5rem 1.8rem;
+  }
+  .vendor-report-card table {
+    font-size: 1em;
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+  .vendor-report-card th, .vendor-report-card td {
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
+    text-align: center;
+  }
+  .vendor-report-card th {
+    background: #e3f2fd;
+    color: #1976d2;
+    font-size: 1.05em;
+    font-weight: 600;
+  }
+  .vendor-report-card td {
+    background: #fff;
+    color: #333;
+  }
+  .filter-section {
+    background: #f8f9fa;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .filter-section h5 {
+    color: #1976d2;
+    margin-bottom: 1rem;
+  }
+  .export-btn {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    border: none;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+  .export-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+    color: white;
+  }
+  .print-btn {
+    background: linear-gradient(135deg, #6c757d, #495057);
+    border: none;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+  .print-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+    color: white;
+  }
+  .count-badge {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-weight: 600;
+    font-size: 0.9em;
+  }
+  .unit-badge {
+    background: linear-gradient(135deg, #4ecdc4, #44a08d);
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: 1.5rem;
+    font-weight: 500;
+    font-size: 0.85em;
+  }
+  .purpose-badge {
+    background: linear-gradient(135deg, #feca57, #ff9ff3);
+    color: #2c3e50;
+    padding: 0.4rem 0.8rem;
+    border-radius: 1.5rem;
+    font-weight: 500;
+    font-size: 0.85em;
+  }
+  
+  /* Print-specific styles */
+  @media print {
+    /* Hide navigation and unnecessary elements */
+    .back-btn,
+    .btn,
+    .alert,
+    nav,
+    .navbar,
+    .sidebar,
+    .breadcrumb,
+    .pagination,
+    .footer,
+    .delete-btn,
+    .edit-btn {
+      display: none !important;
+    }
+    
+    /* Optimize page layout for printing */
+    body {
+      margin: 0;
+      padding: 0;
+      font-size: 12pt;
+      line-height: 1.4;
+      color: #000;
+      background: #fff;
+    }
+    
+    .container {
+      max-width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    
+    .vendor-report-card {
+      box-shadow: none !important;
+      border: 1px solid #000 !important;
+      border-radius: 0 !important;
+      margin: 0 !important;
+      max-width: 100% !important;
+    }
+    
+    .vendor-report-card .card-header {
+      background: #f0f0f0 !important;
+      color: #000 !important;
+      border-bottom: 2px solid #000 !important;
+      padding: 1rem !important;
+      font-size: 18pt !important;
+      text-align: center !important;
+    }
+    
+    .vendor-report-card .card-body {
+      padding: 1rem !important;
+    }
+    
+    /* Table styling for print */
+    .table-responsive {
+      overflow: visible !important;
+    }
+    
+    table {
+      width: 100% !important;
+      border-collapse: collapse !important;
+      font-size: 10pt !important;
+      page-break-inside: avoid;
+    }
+    
+    th, td {
+      border: 1px solid #000 !important;
+      padding: 6px 8px !important;
+      text-align: left !important;
+      vertical-align: top !important;
+    }
+    
+    th {
+      background: #f0f0f0 !important;
+      color: #000 !important;
+      font-weight: bold !important;
+    }
+    
+    td {
+      background: #fff !important;
+      color: #000 !important;
+    }
+    
+    /* Hide badges and styling elements */
+    .count-badge,
+    .unit-badge,
+    .purpose-badge {
+      background: #f0f0f0 !important;
+      color: #000 !important;
+      border: 1px solid #000 !important;
+      padding: 2px 4px !important;
+      border-radius: 0 !important;
+    }
+    
+    /* Ensure proper page breaks */
+    .vendor-report-card {
+      page-break-inside: avoid;
+    }
+    
+    /* Print header */
+    @page {
+      margin: 0.5in;
+      size: A4;
+    }
+    
+    /* Optimize table for print */
+    .table-responsive {
+      max-height: none !important;
+      overflow: visible !important;
+    }
+    
+    /* Ensure table fits on page */
+    table {
+      font-size: 9pt !important;
+      margin-bottom: 0 !important;
+      margin-top: 0.5rem !important;
+    }
+    
+    th, td {
+      padding: 3px 5px !important;
+      word-wrap: break-word;
+    }
+    
+    /* Make sure long content doesn't break layout */
+    td {
+      max-width: 1.5in;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    /* Add report title and date at the top */
+    .print-header {
+      display: block !important;
+      text-align: center;
+      margin-bottom: 0.5rem;
+      font-size: 14pt;
+      font-weight: bold;
+    }
+    
+    .print-date {
+      display: block !important;
+      text-align: center;
+      margin-bottom: 0.5rem;
+      font-size: 10pt;
+    }
+    
+    /* Reduce card body padding */
+    .vendor-report-card .card-body {
+      padding: 0.5rem !important;
+    }
+    
+    /* Reduce card header padding */
+    .vendor-report-card .card-header {
+      padding: 0.5rem !important;
+      font-size: 16pt !important;
+    }
+  }
+  
+  /* Hide print header in screen view */
+  .print-header,
+  .print-date {
+    display: none;
+  }
+  
+  /* Pagination styles */
+  .pagination {
+    margin: 0;
+  }
+  
+  .pagination .page-item .page-link {
+    color: #1976d2;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  
+  .pagination .page-item.active .page-link {
+    background-color: #1976d2;
+    border-color: #1976d2;
+  }
+</style>
+
+<button class="back-btn" class="back-btn" title="Back to Dashboard" id="backToDashboard">
+  <i class="bi bi-arrow-left"></i>
+</button>
+
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-12">
+      <div class="card vendor-report-card">
+        <div class="card-header text-center">
+          📊 Vendor Report
+        </div>
+        <div class="card-body">
+          <!-- Print-only header -->
+          <div class="print-header">Vendor Report</div>
+          <div class="print-date">
+            Generated on: <span id="current-date"></span>
+          </div>
+          <!-- Report Table -->
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Vendor Name</th>
+                  <th>Unit</th>
+                  <th>Food Licence</th>
+                  <th>Agreement Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if vendor_items %}
+                  {% for vendor in vendor_items %}
+                    <tr>
+                      <td>{{ vendor.name }}</td>
+                      <td>{{ vendor.unit }}</td>
+                      <td>
+                        {% if vendor.food_licence_path %}
+                          <a href="{{ url_for('static', filename='app/static/uploads/food_licences/' + (vendor.food_licence_path or '')) }}" target="_blank">View Licence</a>
+                        {% else %}
+                          No licence uploaded
+                        {% endif %}
+                      </td>
+                      <td>{{ vendor.agreement_date }}</td>
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="4" class="text-center py-4">
+                      <div class="text-muted">No vendor data found.</div>
+                    </td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- Pagination -->
+          {% if pagination and pagination.pages > 1 %}
+          <div class="d-flex justify-content-center mt-4">
+            <nav aria-label="Page navigation">
+              <ul class="pagination">
+                {% if pagination.has_prev %}
+                <li class="page-item">
+                  <a class="page-link" href="{{ url_for('admin.vendor_report', page=pagination.prev_num, purpose=selected_purpose) }}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                  </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                  <span class="page-link" aria-hidden="true">&laquo;</span>
+                </li>
+                {% endif %}
+                
+                {% for page_num in range(1, pagination.pages + 1) %}
+                  {% if page_num == pagination.page %}
+                  <li class="page-item active">
+                    <span class="page-link">{{ page_num }}</span>
+                  </li>
+                  {% elif page_num > pagination.page - 3 and page_num < pagination.page + 3 %}
+                  <li class="page-item">
+                    <a class="page-link" href="{{ url_for('admin.vendor_report', page=page_num, purpose=selected_purpose) }}">{{ page_num }}</a>
+                  </li>
+                  {% endif %}
+                {% endfor %}
+                
+                {% if pagination.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="{{ url_for('admin.vendor_report', page=pagination.next_num, purpose=selected_purpose) }}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                  </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                  <span class="page-link" aria-hidden="true">&raquo;</span>
+                </li>
+                {% endif %}
+              </ul>
+            </nav>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="text-center mt-4">
+    <a href="{{ url_for('admin.export_vendor_report_unit_wise', purpose=selected_purpose) }}" class="btn export-btn me-3">
+      <i class="bi bi-download me-1"></i>Export to Excel
+    </a>
+    <button class="btn print-btn me-3" onclick="window.print()">
+      <i class="bi bi-printer me-1"></i>Print Report
+    </button>
+    <a href="{{ url_for('admin.add_vendor_item') }}" class="btn btn-success">
+      <i class="bi bi-plus-circle me-1"></i>Add Vendor Item
+    </a>
+  </div>
+</div>
+
+<!-- Bootstrap Icons CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+{% endblock %}
+<script>
+  document.getElementById('backToDashboard').addEventListener('click', function() {
+    window.location.href = "{{ url_for('admin.dashboard') }}";
+  });
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('vendor_report.html script loaded and DOMContentLoaded fired.'); // Added for debugging
+    
+    // Set current date for print header
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-GB') + ' ' + now.toLocaleTimeString('en-GB', {hour: '2-digit', minute: '2-digit'});
+    const currentDateElement = document.getElementById('current-date');
+    if (currentDateElement) {
+      currentDateElement.textContent = dateStr;
+    }
+    
+    // Enhanced print functionality
+    const printButton = document.querySelector('button[onclick="window.print()"]');
+    if (printButton) {
+        printButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Add a small delay to ensure print styles are applied
+            setTimeout(function() {
+                window.print();
+            }, 100);
+        });
+    }
+    // Function to initialize/re-initialize event listeners
+    function initializeEventListeners() {
+      document.querySelectorAll('.edit-btn').forEach(button => {
+        // Remove existing listener to prevent duplicates if called multiple times
+        button.removeEventListener('click', handleEditButtonClick);
+        button.addEventListener('click', handleEditButtonClick);
+      });
+
+      document.querySelectorAll('.vendor-form').forEach(form => {
+        form.removeEventListener('submit', handleFormSubmit);
+        form.addEventListener('submit', handleFormSubmit);
+      });
+
+      document.querySelectorAll('.food-licence-input').forEach(input => {
+        input.removeEventListener('change', handleFileChange);
+        input.addEventListener('change', handleFileChange);
+      });
+    }
+
+    function handleEditButtonClick() {
+      console.log('Edit button clicked!');
+      const row = this.closest('tr');
+      
+      // Enable all edit fields
+      row.querySelectorAll('.edit-field').forEach(field => {
+        field.disabled = false;
+      });
+      
+      // Handle food licence specific display
+      const foodLicenceInput = row.querySelector('.food-licence-input');
+      const currentLicenceDisplay = row.querySelector('.licence-display');
+      const newLicenceNameDisplay = row.querySelector('.new-licence-name');
+
+      if (currentLicenceDisplay) {
+        currentLicenceDisplay.style.display = 'none'; // Hide "View Licence" / "No licence uploaded"
+      }
+      if (foodLicenceInput) {
+        foodLicenceInput.style.display = 'block'; // Show the file input
+      }
+      if (newLicenceNameDisplay) {
+        newLicenceNameDisplay.style.display = 'block'; // Show the new file name display
+      }
+
+      row.querySelector('.delete-btn').disabled = false;
+      this.style.display = 'none'; // Hide edit button
+    }
+
+    function handleFormSubmit() {
+      const deleteBtn = this.querySelector('.delete-btn');
+      deleteBtn.textContent = 'Deleting...';
+      deleteBtn.disabled = true;
+    }
+
+    function handleFileChange() {
+      const fileNameDisplay = this.nextElementSibling; // This is now .new-licence-name
+      if (this.files.length > 0) {
+        fileNameDisplay.textContent = `Selected: ${this.files[0].name}`;
+        fileNameDisplay.style.display = 'block';
+      } else {
+        fileNameDisplay.textContent = '';
+        fileNameDisplay.style.display = 'none';
+      }
+    }
+
+    // Check for flash messages to indicate successful delete
+    const flashMessages = document.querySelectorAll('.alert-success');
+    if (flashMessages.length > 0) {
+      flashMessages.forEach(msg => {
+        const vendorName = new URLSearchParams(window.location.search).get('vendor_name');
+        if (vendorName) {
+          const row = document.querySelector(`tr[data-vendor-name="${vendorName}"]`);
+          if (row) {
+            const deleteBtn = row.querySelector('.delete-btn');
+            deleteBtn.textContent = 'Deleted';
+            deleteBtn.disabled = true;
+            row.querySelectorAll('.edit-field').forEach(field => {
+              field.disabled = true;
+            });
+            const editBtn = row.querySelector('.edit-btn');
+            if (editBtn) {
+              editBtn.style.display = 'inline-block';
+            }
+          }
+        }
+      });
+    }
+
+    // Initial call to set up event listeners
+    initializeEventListeners();
+  });
+
+// Print event listeners
+window.addEventListener('beforeprint', function() {
+    // Ensure print styles are applied
+    document.body.classList.add('printing');
+});
+
+window.addEventListener('afterprint', function() {
+    // Remove print class after printing
+    document.body.classList.remove('printing');
+});
+</script>

@@ -1,0 +1,197 @@
+# Hindi translations for PROJECT.
+# Copyright (C) 2025 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2025-08-05 12:37+0530\n"
+"PO-Revision-Date: 2025-07-31 16:39+0530\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: hi\n"
+"Language-Team: hi <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+#: app/templates/index.html:2
+msgid "Welcome | Canteen Management System"
+msgstr "स्वागत है | कैंटीन प्रबंधन प्रणाली"
+
+#: app/templates/employee/book.html:231 app/templates/index.html:310
+msgid "Language"
+msgstr "भाषा"
+
+#: app/templates/employee/book.html:234 app/templates/index.html:313
+msgid "English"
+msgstr "अंग्रेज़ी"
+
+#: app/templates/employee/book.html:235 app/templates/index.html:314
+msgid "Tamil"
+msgstr "तमिल"
+
+#: app/templates/employee/book.html:236 app/templates/index.html:315
+msgid "Hindi"
+msgstr "हिंदी"
+
+#: app/templates/index.html:322
+msgid "Violin Technologies Pvt Ltd"
+msgstr "वायलिन टेक्नोलॉजीज प्राइवेट लिमिटेड"
+
+#: app/templates/index.html:325
+msgid "Violin Technologies Logo"
+msgstr "वायलिन टेक्नोलॉजीज लोगो"
+
+#: app/templates/index.html:325
+msgid "Logo not found"
+msgstr "लोगो नहीं मिला"
+
+#: app/templates/index.html:328
+msgid "Smart Canteen Management System (CMS)"
+msgstr "स्मार्ट कैंटीन प्रबंधन प्रणाली (CMS)"
+
+#: app/templates/index.html:329
+msgid "Smart Canteen Management System for Employees"
+msgstr "कर्मचारियों के लिए स्मार्ट कैंटीन प्रबंधन प्रणाली"
+
+#: app/templates/index.html:334
+msgid "Violin Technology Employee Login"
+msgstr "वायलिन टेक्नोलॉजी कर्मचारी लॉगिन"
+
+#: app/templates/index.html:340
+msgid "Canteen Supervisor Login"
+msgstr "कैंटीन पर्यवेक्षक लॉगिन"
+
+#: app/templates/index.html:346
+msgid "Admin/HR/Finance Login"
+msgstr "व्यवस्थापक/एचआर/वित्त लॉगिन"
+
+#: app/templates/index.html:352
+msgid "Violin Technologies Pvt. Ltd. All rights reserved."
+msgstr "वायलिन टेक्नोलॉजीज प्राइवेट लिमिटेड। सर्वाधिकार सुरक्षित।"
+
+#: app/templates/index.html:285
+msgid "Employee Login"
+msgstr "कर्मचारी लॉगिन"
+
+#: app/templates/index.html:293
+msgid "Staff Login"
+msgstr "कर्मचारी लॉगिन"
+
+#: app/templates/index.html:301
+msgid "Admin Login"
+msgstr "व्यवस्थापक लॉगिन"
+
+#: app/templates/employee/book.html:2 app/templates/employee/book.html:248
+msgid "Book a Meal"
+msgstr "भोजन बुक करें"
+
+#: app/templates/employee/book.html:239 app/templates/employee/history.html:246
+msgid "Back to Dashboard"
+msgstr "डैशबोर्ड पर वापस"
+
+#: app/templates/employee/book.html:254
+msgid "Face Detection (Capture)"
+msgstr "चेहरा पहचान (कैप्चर)"
+
+#: app/templates/employee/book.html:256
+msgid "Open Webcam"
+msgstr "वेबकैम खोलें"
+
+#: app/templates/employee/book.html:260
+msgid "Capture Face"
+msgstr "चेहरा कैप्चर करें"
+
+#: app/templates/employee/book.html:262
+msgid "Face Preview"
+msgstr "चेहरे का पूर्वावलोकन"
+
+#: app/templates/employee/book.html:287
+msgid "Your Meal QR Code"
+msgstr "आपका भोजन क्यूआर कोड"
+
+#: app/templates/employee/book.html:288
+msgid "Meal QR Code"
+msgstr "भोजन क्यूआर कोड"
+
+#: app/templates/employee/book.html:291
+msgid "Download QR Code"
+msgstr "क्यूआर कोड डाउनलोड करें"
+
+#: app/templates/employee/book.html:298
+msgid "Breakfast"
+msgstr "नाश्ता"
+
+#: app/templates/employee/book.html:299
+msgid "Lunch"
+msgstr "दोपहर का भोजन"
+
+#: app/templates/employee/book.html:300
+msgid "Dinner"
+msgstr "रात का खाना"
+
+#: app/templates/employee/history.html:2
+msgid "Booking History"
+msgstr "बुकिंग इतिहास"
+
+#: app/templates/employee/history.html:254
+msgid "My Bookings"
+msgstr "मेरी बुकिंग"
+
+#: app/templates/employee/history.html:259
+msgid "Start Date"
+msgstr "प्रारंभ तिथि"
+
+#: app/templates/employee/history.html:262
+msgid "End Date"
+msgstr "अंतिम तिथि"
+
+#: app/templates/employee/history.html:265
+msgid "Filter"
+msgstr "फ़िल्टर"
+
+#: app/templates/employee/history.html:266
+msgid "Clear"
+msgstr "साफ़ करें"
+
+#: app/templates/employee/history.html:274
+msgid "SI.No"
+msgstr "क्र.सं."
+
+#: app/templates/employee/history.html:275
+msgid "Date"
+msgstr "तारीख"
+
+#: app/templates/employee/history.html:276
+msgid "Shift"
+msgstr "शिफ़्ट"
+
+#: app/templates/employee/history.html:277
+msgid "Status"
+msgstr "स्थिति"
+
+#: app/templates/employee/history.html:278
+#: app/templates/employee/history.html:318
+msgid "QR Code"
+msgstr "क्यूआर कोड"
+
+#: app/templates/employee/history.html:294
+msgid "Click to view larger QR code"
+msgstr "बड़ा क्यूआर कोड देखने के लिए क्लिक करें"
+
+#: app/templates/employee/history.html:296
+msgid "N/A"
+msgstr "लागू नहीं"
+
+#: app/templates/employee/history.html:305
+msgid "No bookings found."
+msgstr "कोई बुकिंग नहीं मिली।"
+
+#: app/templates/employee/history.html:319
+msgid "Close"
+msgstr "बंद करें"
+

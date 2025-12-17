@@ -1,0 +1,460 @@
+{% extends 'base_logged_in.html' %}
+{% block title %}{{ _('Book a Meal') }}{% endblock %}
+{% block main_content %}
+<style>
+  .back-btn {
+    position: static;
+    /* Ensure it respects flexbox layout */
+    z-index: 1000;
+    background: #6c757d;
+    border: none;
+    color: #fff;
+    font-size: 1.2rem;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .back-btn:hover {
+    background: #5a6268;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .dashboard-nav-container {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    gap: 1rem;
+  }
+
+  .book-card {
+    font-size: 1.2rem;
+    max-width: 900px;
+    margin: 0 auto;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+    border-radius: 1rem;
+  }
+
+  .book-card .card-header {
+    font-size: 2rem;
+    font-weight: 700;
+    padding: 1.5rem 1.5rem 0.8rem 1.5rem;
+    background: linear-gradient(90deg, #1976d2 0%, #64b5f6 100%);
+    color: #fff;
+    border-radius: 1rem 1rem 0 0;
+    text-align: center;
+  }
+
+  .book-card .card-body {
+    padding: 1.8rem 1.8rem 1.5rem 1.8rem;
+  }
+
+  .book-card label.form-label {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #1976d2;
+  }
+
+  .book-card .form-control,
+  .book-card .form-select {
+    font-size: 1.1em;
+    padding: 0.6rem 1rem;
+    border-radius: 0.5rem;
+  }
+
+  .book-card .btn-primary {
+    font-size: 1.1em;
+    padding: 0.6rem 2rem;
+    border-radius: 0.5rem;
+  }
+
+  .qr-code-container {
+    text-align: center;
+    margin-top: 1.5rem;
+  }
+
+  .qr-code-container h4 {
+    margin-bottom: 0.8rem;
+    color: #1976d2;
+    font-size: 1.3rem;
+  }
+
+  .qr-code-img {
+    width: 180px;
+    height: 180px;
+    box-shadow: 0 1px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 0.75rem;
+    transition: transform 0.2s ease;
+  }
+
+  .qr-code-img:hover {
+    transform: scale(1.05);
+  }
+
+  .download-btn {
+    margin-top: 1rem;
+  }
+
+  /* Mobile Responsiveness */
+  @media (max-width: 1199.98px) {
+    .book-card {
+      font-size: 1rem;
+      max-width: 800px;
+    }
+
+    .book-card .card-header {
+      font-size: 1.8rem;
+      padding: 1.5rem 1.5rem 0.7rem 1.5rem;
+    }
+
+    .book-card .card-body {
+      padding: 1.8rem 1.8rem 1.5rem 1.8rem;
+    }
+
+    .book-card label.form-label {
+      font-size: 1.05em;
+    }
+
+    .book-card .form-control,
+    .book-card .form-select {
+      font-size: 1.05em;
+      padding: 0.55rem 0.9rem;
+    }
+
+    .book-card .btn-primary {
+      font-size: 1.05em;
+      padding: 0.55rem 1.8rem;
+    }
+
+    .qr-code-img {
+      width: 140px;
+      height: 140px;
+    }
+  }
+
+  @media (max-width: 991.98px) {
+    .book-card {
+      font-size: 0.95rem;
+      max-width: 700px;
+    }
+
+    .book-card .card-header {
+      font-size: 1.6rem;
+      padding: 1.3rem 1.3rem 0.6rem 1.3rem;
+    }
+
+    .book-card .card-body {
+      padding: 1.5rem 1.5rem 1.2rem 1.5rem;
+    }
+
+    .book-card label.form-label {
+      font-size: 1em;
+    }
+
+    .book-card .form-control,
+    .book-card .form-select {
+      font-size: 1em;
+      padding: 0.5rem 0.8rem;
+    }
+
+    .book-card .btn-primary {
+      font-size: 0.95em;
+      padding: 0.5rem 1.6rem;
+    }
+
+    .qr-code-img {
+      width: 120px;
+      height: 120px;
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .back-btn {
+      width: 36px;
+      height: 36px;
+      font-size: 0.9rem;
+    }
+
+    .book-card {
+      font-size: 0.85rem;
+      margin: 0 0.3rem;
+      max-width: 100%;
+    }
+
+    .book-card .card-header {
+      font-size: 1.4rem;
+      padding: 1.1rem 1.1rem 0.5rem 1.1rem;
+    }
+
+    .book-card .card-body {
+      padding: 1.3rem 1.3rem 1rem 1.3rem;
+    }
+
+    .book-card label.form-label {
+      font-size: 0.95em;
+    }
+
+    .book-card .form-control,
+    .book-card .form-select {
+      font-size: 0.95em;
+      padding: 0.45rem 0.7rem;
+    }
+
+    .book-card .btn-primary {
+      font-size: 0.9em;
+      padding: 0.45rem 1.5rem;
+    }
+
+    .qr-code-img {
+      width: 100px;
+      height: 100px;
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    .book-card {
+      font-size: 0.85rem;
+      margin: 0 0.25rem;
+      min-width: 0;
+    }
+
+    .book-card .card-header {
+      font-size: 1.4rem;
+      padding: 1.2rem 1.2rem 0.6rem 1.2rem;
+    }
+
+    .book-card .card-body {
+      padding: 1.6rem 1.6rem 1.2rem 1.6rem;
+    }
+
+    .book-card label.form-label {
+      font-size: 0.95em;
+    }
+
+    .book-card .form-control,
+    .book-card .form-select {
+      font-size: 0.95em;
+      padding: 0.55rem 0.8rem;
+    }
+
+    .book-card .btn-primary {
+      font-size: 0.9em;
+      padding: 0.55rem 1.6rem;
+    }
+
+    .qr-code-img {
+      width: 100px;
+      height: 100px;
+    }
+  }
+
+  @media (max-width: 375px) {
+    .book-card {
+      font-size: 0.8rem;
+    }
+
+    .book-card .card-header {
+      font-size: 1.2rem;
+      padding: 1rem 1rem 0.5rem 1rem;
+    }
+
+    .book-card .card-body {
+      padding: 1.4rem 1.4rem 1rem 1.4rem;
+    }
+
+    .book-card label.form-label {
+      font-size: 0.9em;
+    }
+
+    .book-card .form-control,
+    .book-card .form-select {
+      font-size: 0.9em;
+      padding: 0.5rem 0.7rem;
+    }
+
+    .book-card .btn-primary {
+      font-size: 0.85em;
+      padding: 0.5rem 1.4rem;
+    }
+
+    .qr-code-img {
+      width: 120px;
+      height: 120px;
+    }
+  }
+</style>
+<div class="d-flex justify-content-end align-items-center"
+  style="position: absolute; top: 1rem; right: 1rem; gap: 1rem;">
+
+  <a href="{{ url_for('employee.dashboard') }}" class="back-btn" title="{{ _('Back to Dashboard') }}">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <div class="dropdown">
+    <button class="btn btn-secondary dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown"
+      aria-expanded="false">
+      <i class="bi bi-translate"></i> English
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+      <li><a class="dropdown-item {% if g.locale == 'en' %}active{% endif %}" href="?lang=en">English</a></li>
+      <li><a class="dropdown-item {% if g.locale == 'ta' %}active{% endif %}" href="?lang=ta">Tamil</a></li>
+      <li><a class="dropdown-item {% if g.locale == 'hi' %}active{% endif %}" href="?lang=hi">Hindi</a></li>
+    </ul>
+  </div>
+</div>
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-10 col-md-12 col-sm-12">
+      <div class="card book-card">
+        <div class="card-header">
+          {{ _('Book a Meal') }}
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {{ form.hidden_tag() }}
+            <div class="mb-4">
+              <label class="form-label">{{ _('Face Detection (Capture)') }}</label>
+              <div>
+                <button type="button" class="btn btn-outline-primary mb-2" id="openWebcamBtn">{{ _('Open Webcam')
+                  }}</button>
+                <div id="webcamContainer" style="display:none;">
+                  <video id="webcam" width="480" height="360" autoplay
+                    style="border-radius: 1rem; border: 1px solid #1976d2;"></video>
+                  <br>
+                  <button type="button" class="btn btn-success mt-2" id="captureBtn">{{ _('Capture Face') }}</button>
+                  <canvas id="faceCanvas" width="480" height="360" style="display:none;"></canvas>
+                  <img id="facePreview" src="" alt="{{ _('Face Preview') }}"
+                    style="display:none; margin-top:10px; border-radius:1rem; max-width:100%;" />
+                </div>
+                <input type="hidden" name="face_image" id="faceImageInput">
+              </div>
+            </div>
+            <div class="mb-4">
+              {{ form.shift.label(class="form-label") }}
+              <div>
+                {% for value, label in form.shift.choices %}
+                <label class="form-check form-check-inline" style="font-size: 1.5rem; margin-right: 2.5rem;">
+                  <input class="form-check-input" type="radio" name="shift" id="shift-{{ value|lower }}"
+                    value="{{ value }}" {% if form.shift.data==value %}checked{% endif %} required
+                    style="width: 1.5em; height: 1.5em; margin-right: 0.5em;">
+                  <span class="form-check-label" style="font-size: 1.9rem; font-weight: 600;">{{ _(label) }}</span>
+                </label>
+
+                {% endfor %}
+              </div>
+            </div>
+            <div class="mb-4">
+              {{ form.date.label(class="form-label") }}
+              {{ form.date(class="form-control", value=today) }}
+            </div>
+            {{ form.submit(class="btn btn-primary w-100") }}
+          </form>
+          {% if qr_image_base64 %}
+          <div class="qr-code-container">
+            <h4>{{ _('Your Meal QR Code') }}</h4>
+            <img id="meal-qr-img" src="data:image/png;base64,{{ qr_image_base64 }}" alt="{{ _('Meal QR Code') }}"
+              class="qr-code-img">
+            <div class="download-btn">
+              <a id="download-qr-btn" href="data:image/png;base64,{{ qr_image_base64 }}" download="meal_qr_code.png"
+                class="btn btn-success">
+                <i class="bi bi-download me-2"></i>{{ _('Download QR Code') }}
+              </a>
+            </div>
+          </div>
+          {% endif %}
+          <!-- Booking Windows Info (horizontal, at very bottom) -->
+          <div class="d-flex justify-content-center align-items-center mt-4" style="gap:2rem; font-size:0.85em;">
+            <span><b>{{ _('Breakfast') }}:</b> 4:00–9:30am</span>
+            <span><b>{{ _('Lunch') }}:</b> 9:30–12:30pm</span>
+            <span><b>{{ _('Dinner') }}:</b> 2:00–7:00pm</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Bootstrap Icons CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var alerts = document.querySelectorAll('.alert');
+    alerts.forEach(function (alert) {
+      setTimeout(function () {
+        alert.classList.add('fade');
+        setTimeout(function () { alert.style.display = 'none'; }, 500);
+      }, 3000);
+    });
+  });
+</script>
+<script>
+  // Webcam face capture logic
+  const openWebcamBtn = document.getElementById('openWebcamBtn');
+  const webcamContainer = document.getElementById('webcamContainer');
+  const webcam = document.getElementById('webcam');
+  const captureBtn = document.getElementById('captureBtn');
+  const faceCanvas = document.getElementById('faceCanvas');
+  const facePreview = document.getElementById('facePreview');
+  const faceImageInput = document.getElementById('faceImageInput');
+  let stream = null;
+
+  async function openWebcam() {
+    webcamContainer.style.display = 'block';
+    if (!stream) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        webcam.srcObject = stream;
+      } catch (err) {
+        alert('Could not access webcam: ' + err);
+      }
+    }
+  }
+
+  openWebcamBtn.onclick = openWebcam;
+
+  captureBtn.onclick = function () {
+    faceCanvas.style.display = 'block';
+    faceCanvas.getContext('2d').drawImage(webcam, 0, 0, faceCanvas.width, faceCanvas.height);
+    const dataUrl = faceCanvas.toDataURL('image/png');
+    facePreview.src = dataUrl;
+    facePreview.style.display = 'block';
+    faceImageInput.value = dataUrl;
+  };
+
+  // Automatically open webcam on page load
+  document.addEventListener('DOMContentLoaded', function () {
+    openWebcam();
+  });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+
+    // Define meal time ranges (24-hour format)
+    // Breakfast: 4:00 AM - 9:30 AM
+    // Lunch: 9:30 AM - 2:00 PM (14:00)
+    // Dinner: 2:00 PM (14:00) - 7:00 PM (19:00)
+
+    let selectedShift = '';
+
+    if (currentHour >= 4 && (currentHour < 9 || (currentHour === 9 && currentMinute <= 30))) {
+      selectedShift = 'Breakfast';
+    } else if (currentHour >= 9 && (currentHour < 14 || (currentHour === 14 && currentMinute === 0))) {
+      selectedShift = 'Lunch';
+    } else if (currentHour >= 14 && (currentHour < 19 || (currentHour === 19 && currentMinute === 0))) {
+      selectedShift = 'Dinner';
+    }
+
+    if (selectedShift) {
+      const radioButton = document.getElementById('shift-' + selectedShift.toLowerCase());
+      if (radioButton) {
+        radioButton.checked = true;
+      }
+    }
+  });
+</script>
+{% endblock %}

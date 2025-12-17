@@ -1,0 +1,455 @@
+{% extends 'base_logged_in.html' %}
+{% block title %}Employee Dashboard{% endblock %}
+{% block main_content %}
+<style>
+  .back-btn {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 1000;
+    background: #6c757d;
+    border: none;
+    color: #fff;
+    font-size: 1.2rem;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .back-btn:hover {
+    background: #5a6268;
+    transform: scale(1.08);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  }
+  .dashboard-card {
+    font-size: 1.1rem;
+    max-width: 900px;
+    margin: 0 auto;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    border-radius: 1rem;
+  }
+  .dashboard-card .card-header {
+    font-size: 1.8rem;
+    font-weight: 700;
+    padding: 1.5rem 1.5rem 1.2rem 1.5rem;
+    background: linear-gradient(90deg, #1976d2 0%, #64b5f6 100%);
+    color: #fff;
+    border-radius: 1rem 1rem 0 0;
+  }
+  .dashboard-card .card-body {
+    padding: 1.8rem 1.8rem 1.5rem 1.8rem;
+  }
+  .dashboard-links .btn {
+    font-size: 1.05em;
+    padding: 0.6rem 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    border: none;
+    color: #fff;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+  }
+  .dashboard-links .btn:hover, .dashboard-links .btn:focus {
+    transform: scale(1.05);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    z-index: 2;
+  }
+  .btn-book-meal {
+    background: linear-gradient(90deg, #ff512f 0%, #dd2476 100%);
+  }
+  .btn-book-meal:hover, .btn-book-meal:focus {
+    background: linear-gradient(90deg, #dd2476 0%, #ff512f 100%);
+    color: #fff;
+  }
+  .btn-my-bookings {
+    background: linear-gradient(90deg, #36d1c4 0%, #1e90ff 100%);
+  }
+  .btn-my-bookings:hover, .btn-my-bookings:focus {
+    background: linear-gradient(90deg, #1e90ff 0%, #36d1c4 100%);
+    color: #fff;
+  }
+  .btn-profile {
+    background: linear-gradient(90deg, #43cea2 0%, #185a9d 100%);
+  }
+  .btn-profile:hover, .btn-profile:focus {
+    background: linear-gradient(90deg, #185a9d 0%, #43cea2 100%);
+    color: #fff;
+  }
+  .dashboard-card .card.mt-4 {
+    min-width: 320px;
+    font-size: 1.1em;
+    border-radius: 1rem;
+    margin-top: 2rem !important;
+  }
+  .dashboard-card .card-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+
+  /* Mobile Responsiveness */
+  @media (max-width: 1199.98px) {
+    .dashboard-card {
+      font-size: 1rem;
+      max-width: 800px;
+    }
+    .dashboard-card .card-header {
+      font-size: 1.6rem;
+      padding: 1.3rem 1.3rem 1rem 1.3rem;
+    }
+    .dashboard-card .card-body {
+      padding: 1.5rem 1.5rem 1.2rem 1.5rem;
+    }
+    .dashboard-links .btn {
+      font-size: 1em;
+      padding: 0.55rem 0.9rem;
+      margin-bottom: 0.8rem;
+    }
+  }
+
+  @media (max-width: 991.98px) {
+    .dashboard-card {
+      font-size: 0.95rem;
+      max-width: 700px;
+    }
+    .dashboard-card .card-header {
+      font-size: 1.5rem;
+      padding: 1.2rem 1.2rem 0.9rem 1.2rem;
+    }
+    .dashboard-card .card-body {
+      padding: 1.4rem 1.4rem 1.1rem 1.4rem;
+    }
+    .dashboard-links .btn {
+      font-size: 0.95em;
+      padding: 0.5rem 0.8rem;
+      margin-bottom: 0.7rem;
+    }
+    .dashboard-card .card.mt-4 {
+      min-width: 250px;
+      font-size: 0.95em;
+    }
+    .dashboard-card .card-title {
+      font-size: 1.1rem;
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .back-btn {
+      top: 12px;
+      right: 12px;
+      width: 36px;
+      height: 36px;
+      font-size: 0.9rem;
+    }
+    .dashboard-card {
+      font-size: 0.85rem;
+      margin: 0 0.3rem;
+      max-width: 100%;
+    }
+    .dashboard-card .card-header {
+      font-size: 1.4rem;
+      padding: 1.1rem 1.1rem 0.8rem 1.1rem;
+    }
+    .dashboard-card .card-body {
+      padding: 1.3rem 1.3rem 1rem 1.3rem;
+    }
+    .dashboard-links .btn {
+      font-size: 0.9em;
+      padding: 0.45rem 0.75rem;
+      margin-bottom: 0.7rem;
+    }
+    .dashboard-card .card.mt-4 {
+      min-width: 200px;
+      font-size: 0.85em;
+    }
+    .dashboard-card .card-title {
+      font-size: 1rem;
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    .dashboard-card {
+      font-size: 0.85rem;
+      margin: 0 0.25rem;
+    }
+    .dashboard-card .card-header {
+      font-size: 1.4rem;
+      padding: 1.2rem 1.2rem 0.8rem 1.2rem;
+    }
+    .dashboard-card .card-body {
+      padding: 1.6rem 1.6rem 1.2rem 1.6rem;
+    }
+    .dashboard-links .btn {
+      font-size: 0.9em;
+      padding: 0.55rem 0.8rem;
+      margin-bottom: 0.8rem;
+    }
+    .dashboard-card .card.mt-4 {
+      min-width: 200px;
+      font-size: 0.85em;
+    }
+    .dashboard-card .card-title {
+      font-size: 1rem;
+    }
+  }
+
+  @media (max-width: 375px) {
+    .dashboard-card {
+      font-size: 0.8rem;
+    }
+    .dashboard-card .card-header {
+      font-size: 1.2rem;
+      padding: 1rem 1rem 0.7rem 1rem;
+    }
+    .dashboard-card .card-body {
+      padding: 1.4rem 1.4rem 1rem 1.4rem;
+    }
+    .dashboard-links .btn {
+      font-size: 0.85em;
+      padding: 0.5rem 0.7rem;
+      margin-bottom: 0.7rem;
+    }
+    .dashboard-card .card.mt-4 {
+      min-width: 180px;
+      font-size: 0.8em;
+    }
+    .dashboard-card .card-title {
+      font-size: 0.9rem;
+    }
+  }
+</style>
+<button class="back-btn" id="logoutBtn" title="{{ _('Logout') }}">
+  <i class="bi bi-box-arrow-right"></i>
+</button>
+<div class="container py-4" style="max-width: 1200px; min-height: 100vh;">
+  <div class="row justify-content-center">
+    <div class="col-12">
+      <div class="card dashboard-card">
+        <div class="card-header text-center">
+          📊  Welcome, {{ current_user.name | default('Employee') if current_user.is_authenticated else 'Employee' }}!
+        </div>
+        <div class="card-body">
+          <div class="row mb-4 align-items-center">
+  
+            <div class="row dashboard-links justify-content-center mb-4">
+              <div class="col-lg-4 col-md-6 col-sm-12">
+                <a href="{{ url_for('employee.book_meal') }}" class="btn btn-book-meal w-100">Book a Meal</a>
+              </div>
+              <div class="col-lg-4 col-md-6 col-sm-12">
+                <a href="{{ url_for('employee.booking_history') }}" class="btn btn-my-bookings w-100">My Bookings</a>
+              </div>
+              <div class="col-lg-4 col-md-6 col-sm-12">
+                <a href="{{ url_for('employee.profile') }}" class="btn btn-profile w-100">Profile</a>
+              </div>
+            </div>
+            <!-- Unit Selection Modal -->
+            <div class="modal fade" id="unitSelectionModal" tabindex="-1" aria-labelledby="unitSelectionModalLabel" aria-hidden="true">
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="unitSelectionModalLabel">Select Your Unit</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    <div class="mb-3">
+                      <label for="modalUnitSelect" class="form-label">Choose Unit:</label>
+                      <select class="form-select" id="modalUnitSelect">
+                        {% for loc in locations %}
+                          <option value="{{ loc.id | default('') }}" {% if session.get('selected_unit_id') == loc.id %}selected{% endif %}>{{ loc.name | default('') }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="modalSelectUnitBtn">Select Unit</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <!-- Weekly Booking Chart -->
+              <div class="col-lg-12 mb-4">
+                <div class="card h-100">
+                  <div class="card-body">
+                    <h5 class="card-title text-center mb-3">My Bookings - Past 7 Days</h5>
+                    <div class="chart-container" style="position: relative; height:300px;">
+                      <canvas id="bookingChart"></canvas>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Today's Booking Status -->
+              <div class="col-lg-12 mb-4">
+                <div class="card h-100">
+                  <div class="card-body">
+                    <h5 class="card-title text-center mb-3">Today's Booking Status</h5>
+                    {% if today_bookings %}
+                      <div class="row justify-content-center">
+                        {% for booking in today_bookings %}
+                          <div class="col-lg-6 col-md-8 col-sm-10 mb-3">
+                            <div class="card border-{% if booking.status == 'Booked' %}primary{% elif booking.status == 'Consumed' %}success{% else %}danger{% endif %} w-100">
+                              <div class="card-body text-center p-3">
+                                <h6 class="card-title mb-2">{{ booking.shift | default('') }}</h6>
+                                <span class="badge bg-{% if booking.status == 'Booked' %}primary{% elif booking.status == 'Consumed' %}success{% else %}danger{% endif %}">
+                                  {{ booking.status | default('') }}
+                                </span>
+                                <small class="d-block mt-1 text-muted">{{ booking.location_name | default('') }}</small>
+                              </div>
+                            </div>
+                          </div>
+                        {% endfor %}
+                      </div>
+                    {% else %}
+                      <p class="card-text text-center text-muted">No bookings for today.</p>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Today's Menu -->
+            <div class="card mt-4">
+              <div class="card-body">
+                <h5 class="card-title text-center mb-3">Today's Menu</h5>
+                {% if daily_menu %}
+                  <ul class="list-group list-group-flush">
+                    {% for meal in daily_menu %}
+                    <li class="list-group-item" style="font-size: 1.1em;">
+                        <strong class="text-primary">{{ meal.meal_type | default('') }}:</strong> {{ meal['items'] | string | default('') }}
+                    </li>
+                    {% endfor %}
+                  </ul>
+                {% else %}
+                  <p class="card-text text-center text-muted">No menu available for your unit today.</p>
+                {% endif %}
+              </div>
+            </div>
+  
+           </div>
+       </div>
+     </div>
+   </div>
+ </div>
+ <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+ <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var unitSelectionModal = document.getElementById('unitSelectionModal');
+    var modalSelectUnitBtn = document.getElementById('modalSelectUnitBtn');
+    var modalUnitSelect = document.getElementById('modalUnitSelect');
+    var selectedUnitNameDisplay = document.getElementById('selectedUnitNameDisplay');
+    var logoutBtn = document.getElementById('logoutBtn');
+
+    if (modalSelectUnitBtn) {
+      modalSelectUnitBtn.addEventListener('click', function() {
+        var selectedUnitId = modalUnitSelect.value;
+        var selectedUnitName = modalUnitSelect.options[modalUnitSelect.selectedIndex].text;
+
+        fetch('/cms/employee/select_unit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: 'unit_id=' + selectedUnitId
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            selectedUnitNameDisplay.textContent = selectedUnitName;
+            var modal = bootstrap.Modal.getInstance(unitSelectionModal);
+            if (modal) {
+              modal.hide();
+            }
+            // Reload the page to reflect the new menu based on the selected unit
+            window.location.reload();
+          } else {
+            alert('Error: ' + data.message);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred while selecting the unit.');
+        });
+      });
+    }
+
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', function() {
+        window.location.href = "{{ url_for('employee.logout') }}";
+      });
+    }
+  });
+
+  // Chart.js initialization
+  
+  var ctx = document.getElementById('bookingChart').getContext('2d');
+
+  var chartLabels = JSON.parse('{{ chart_labels | tojson }}');
+  var breakfastData = JSON.parse('{{ breakfast_data | tojson }}');
+  var lunchData = JSON.parse('{{ lunch_data | tojson }}');
+  var dinnerData = JSON.parse('{{ dinner_data | tojson }}');
+
+  var bookingChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: chartLabels,
+      datasets: [
+        {
+          label: 'Breakfast',
+          data: breakfastData,
+          backgroundColor: 'rgba(255, 99, 132, 0.8)',
+          borderColor: 'rgba(255, 99, 132, 1)',
+          borderWidth: 1
+        },
+        {
+          label: 'Lunch',
+          data: lunchData,
+          backgroundColor: 'rgba(54, 162, 235, 0.8)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1
+        },
+        {
+          label: 'Dinner',
+          data: dinnerData,
+          backgroundColor: 'rgba(255, 159, 64, 0.8)',
+          borderColor: 'rgba(255, 159, 64, 1)',
+          borderWidth: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          stacked: true,
+          title: {
+            display: true,
+            text: 'Date'
+          }
+        },
+        y: {
+          stacked: true,
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Number of Bookings'
+          },
+          ticks: {
+            precision: 0
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          position: 'top',
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+        }
+      }
+    }
+  });
+  
+ </script>
+{% endblock %}

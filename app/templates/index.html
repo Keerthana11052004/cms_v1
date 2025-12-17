@@ -1,0 +1,320 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Welcome | Canteen Management System') }}{% endblock %}
+{% block content %}
+<style>
+  .back-btn {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+    background: #6c757d;
+    border: none;
+    color: #fff;
+    font-size: 1rem;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  
+  .back-btn:hover {
+    background: #5a6268;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  
+  .login-btn {
+    font-size: 1.1rem;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    border: none;
+    position: relative;
+    overflow: hidden;
+    min-height: 60px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .login-btn:hover {
+    transform: scale(1.03) translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    z-index: 10;
+  }
+  
+  .login-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+  }
+  
+  .login-btn:hover::before {
+    left: 100%;
+  }
+  
+  .btn-employee {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+  }
+  
+  .btn-staff {
+    background: linear-gradient(135deg, #28a745, #1e7e34);
+    color: white;
+  }
+  
+  .btn-admin {
+    background: linear-gradient(135deg, #17a2b8, #138496);
+    color: white;
+  }
+  
+  .welcome-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-align: center;
+  }
+  
+  .tagline {
+    font-size: 1.2rem;
+    color: #666;
+    margin-bottom: 2rem;
+    font-weight: 500;
+    text-align: center;
+  }
+  
+  .login-tile {
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    border: 1px solid #e0e0e0;
+    transition: box-shadow 0.3s, transform 0.3s;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .login-tile:hover {
+    box-shadow: 0 8px 32px rgba(33,150,243,0.18);
+    transform: translateY(-3px) scale(1.02);
+  }
+  
+  /* Mobile Responsiveness */
+  @media (max-width: 1199.98px) {
+    .welcome-title {
+      font-size: 1.8rem;
+      margin-bottom: 1.3rem;
+    }
+    .login-btn {
+      font-size: 1rem;
+      padding: 0.9rem 1.3rem;
+    }
+  }
+
+  @media (max-width: 991.98px) {
+    .welcome-title {
+      font-size: 1.6rem;
+      margin-bottom: 1.2rem;
+    }
+    .login-btn {
+      font-size: 0.95rem;
+      padding: 0.8rem 1.2rem;
+    }
+    .tagline {
+      font-size: 1.1rem;
+      margin-bottom: 1.5rem;
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .welcome-title {
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+    }
+    .login-btn {
+      font-size: 0.9rem;
+      padding: 0.7rem 1rem;
+    }
+    .tagline {
+      font-size: 1rem;
+      margin-bottom: 1.2rem;
+    }
+    .login-tile {
+      padding: 1.2rem;
+      margin-bottom: 1rem;
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    .welcome-title {
+      font-size: 1.2rem;
+      margin-bottom: 0.8rem;
+    }
+    .login-btn {
+      font-size: 0.85rem;
+      padding: 0.6rem 0.9rem;
+      letter-spacing: 0.3px;
+    }
+    .tagline {
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+    .login-tile {
+      padding: 1rem;
+      margin-bottom: 0.8rem;
+    }
+    .hero-logo-circle {
+      width: 100px;
+      height: 100px;
+      margin-bottom: 1rem;
+    }
+    .hero-logo-circle img {
+      width: 70px;
+      height: 70px;
+    }
+  }
+
+  @media (max-width: 375px) {
+    .welcome-title {
+      font-size: 1.1rem;
+      margin-bottom: 0.7rem;
+    }
+    .login-btn {
+      font-size: 0.8rem;
+      padding: 0.5rem 0.8rem;
+    }
+    .tagline {
+      font-size: 0.85rem;
+      margin-bottom: 0.8rem;
+    }
+  }
+  
+  .hero-logo-circle {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #e3f0ff 0%, #f8fbff 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem auto;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+    border: 2.5px solid #fff;
+  }
+  
+  .hero-logo-img {
+    width: 90px;
+    height: 90px;
+    object-fit: contain;
+    display: block;
+    margin: auto;
+  }
+  
+  .company-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    letter-spacing: 1px;
+    text-align: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-top: 4rem; /* Added gap at the top */
+  }
+  
+  .footer {
+    width: 100%;
+    text-align: center;
+    padding: 1rem 0 0.5rem 0;
+    color: #888;
+    font-size: 0.9rem;
+    background: none;
+    margin-top: 1.5rem;
+  }
+</style>
+
+<div class="d-flex justify-content-end align-items-center" style="position: absolute; top: 1rem; right: 1rem;">
+  <div class="dropdown">
+    <button class="btn btn-secondary dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+      <i class="bi bi-translate"></i> English
+    </button>
+    <ul class="dropdown-menu" aria-labelledby="languageDropdown">
+      <li><a class="dropdown-item {% if current_lang == 'en' %}active{% endif %}" href="?lang=en">English</a></li>
+      <li><a class="dropdown-item {% if current_lang == 'ta' %}active{% endif %}" href="?lang=ta">Tamil</a></li>
+      <li><a class="dropdown-item {% if current_lang == 'hi' %}active{% endif %}" href="?lang=hi">Hindi</a></li>
+    </ul>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row justify-content-center align-items-center" style="min-height: 90vh;">
+    <div class="col-lg-8">
+      <div class="row">
+        <!-- Branding -->
+        <div class="col-12 mb-4 text-center">
+          <h2 class="company-title">{{ _('Violin Technologies Pvt Ltd') }}</h2>
+          <div class="hero-logo-circle">
+            <img class="hero-logo-img" src="{{ url_for('static', filename='VT_Logo.png') }}" alt="{{ _('Violin Technologies Logo') }}">
+          </div>
+          <h1 class="welcome-title">{{ _('Smart Canteen Management System (CMS)') }} <span class="chef-emoji">👨‍🍳</span></h1>
+        </div>
+        
+        <!-- Login Options -->
+        <div class="col-12">
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <div class="login-tile">
+                <a href="{{ url_for('employee.login') }}" class="btn login-btn btn-employee w-100">
+                  <i class="bi bi-person-badge me-2"></i>
+                  {{ _('Employee Login') }}
+                </a>
+              </div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <div class="login-tile">
+                <a href="{{ url_for('staff.login') }}" class="btn login-btn btn-staff w-100">
+                  <i class="bi bi-people-fill me-2"></i>
+                  {{ _('Staff Login') }}
+                </a>
+              </div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <div class="login-tile">
+                <a href="{{ url_for('admin.login') }}" class="btn login-btn btn-admin w-100">
+                  <i class="bi bi-shield-check me-2"></i>
+                  {{ _('Admin Login') }}
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="col-12 text-center">
+          <footer class="footer">
+            &copy; 2025 {{ _('Violin Technologies Pvt. Ltd. All rights reserved.') }}
+          </footer>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap Icons CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+{% endblock %} 

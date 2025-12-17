@@ -1,0 +1,165 @@
+{% extends 'base_logged_in.html' %}
+{% block title %}{% if vendor_data %}Edit Vendor Item{% else %}Add Vendor Item{% endif %}{% endblock %}
+
+{% block main_content %}
+<style>
+    .back-btn {
+        position: fixed;
+        top: 24px;
+        right: 24px;
+        z-index: 1000;
+        background: #6c757d;
+        border: none;
+        color: #fff;
+        font-size: 1.2rem;
+        border-radius: 50%;
+        width: 48px;
+        height: 48px;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .back-btn:hover {
+        background: #5a6268;
+        transform: scale(1.08);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    }
+    .add-vendor-card {
+        max-width: 700px;
+        margin: 3rem auto;
+        box-shadow: 0 4px 32px rgba(0,0,0,0.10);
+        border-radius: 1.5rem;
+        overflow: hidden;
+    }
+    .add-vendor-card .card-header {
+        font-size: 2rem;
+        font-weight: 700;
+        padding: 2rem;
+        background: linear-gradient(90deg, #1976d2 0%, #64b5f6 100%);
+        color: #fff;
+        border-radius: 1.5rem 1.5rem 0 0;
+        text-align: center;
+    }
+    .add-vendor-card .card-body {
+        padding: 2.5rem;
+    }
+    .form-label {
+        font-weight: 600;
+        color: #333;
+    }
+    .btn-primary {
+        background: linear-gradient(135deg, #1976d2, #64b5f6);
+        border: none;
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        transition: all 0.3s ease;
+    }
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+        color: white;
+    }
+    .btn-secondary {
+        background: #6c757d;
+        border: none;
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        transition: all 0.3s ease;
+    }
+    .btn-secondary:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+        color: white;
+    }
+</style>
+
+<button class="back-btn" title="Back to Vendor Report" id="backToVendorReport">
+    <i class="bi bi-arrow-left"></i>
+</button>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card add-vendor-card">
+                <div class="card-header">
+                    {% if vendor_data %}
+                    ✏️ Edit Vendor Item
+                    {% else %}
+                    ➕ Add New Vendor Item
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin.add_vendor_item') }}" enctype="multipart/form-data">
+                        {{ form.csrf_token }}
+                        {% if message %}
+                        <input type="hidden" name="original_vendor_name" value="{{ vendor_data.name }}">
+                        {% endif %}
+                        <div class="mb-3">
+                            {{ form.name.label(class="form-label") }}
+                            {% if vendor_data %}
+                                {{ form.name(class="form-control", placeholder="Enter vendor name", readonly=true) }}
+                                <small class="form-text text-muted">Vendor name cannot be changed when editing.</small>
+                            {% else %}
+                                {{ form.name(class="form-control", placeholder="Enter vendor name") }}
+                            {% endif %}
+                            {% for error in form.name.errors %}
+                                <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.unit.label(class="form-label") }}
+                            {{ form.unit(class="form-select") }}
+                            {% for error in form.unit.errors %}
+                                <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.food_licence.label(class="form-label") }}
+                            {{ form.food_licence(class="form-control", accept=".pdf") }}
+                            {% for error in form.food_licence.errors %}
+                                <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                            {% if vendor_data and vendor_data.food_licence_path %}
+                                <small class="form-text text-muted">Current: <a href="{{ url_for('admin.uploaded_file', filename=vendor_data.food_licence_path) }}" target="_blank">{{ vendor_data.food_licence_path.split('/')[-1] }}</a></small>
+                            {% endif %}
+                        </div>
+                        <div class="mb-4">
+                            {{ form.agreement_date.label(class="form-label") }}
+                            {{ form.agreement_date(class="form-control", type="date") }}
+                            {% for error in form.agreement_date.errors %}
+                                <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">{% if vendor_data %}Update Vendor{% else %}Add Vendor Item{% endif %}</button>
+                            <a href="{{ url_for('admin.vendor_report') }}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap Icons CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const backButton = document.getElementById('backToVendorReport');
+    backButton.addEventListener('click', function() {
+      window.location.href = "{{ url_for('admin.vendor_report') }}";
+    });
+    const form = document.querySelector('form');
+    const message = form.dataset.message;
+    if (message) {
+      alert(message);
+      window.location.href = "{{ url_for('admin.vendor_report') }}";
+    }
+  });
+</script>
+{% endblock %}

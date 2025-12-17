@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% block title %}Add New User{% endblock %}
+{% block content %}
+<style>
+  .back-btn {
+    position: fixed;
+    top: 24px;
+    left: 24px;
+    z-index: 1000;
+    background: #6c757d;
+    border: none;
+    color: #fff;
+    font-size: 1.2rem;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .back-btn:hover {
+    background: #5a6268;
+    transform: scale(1.08);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  }
+  .add-user-card {
+    font-size: 1.25rem;
+    max-width: 1100px;
+    margin: 0 auto;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.10);
+    border-radius: 1.5rem;
+  }
+  .add-user-card .card-header {
+    font-size: 2.2rem;
+    font-weight: 700;
+    padding: 2rem 2rem 1rem 2rem;
+    background: linear-gradient(90deg, #1976d2 0%, #64b5f6 100%);
+    color: #fff;
+    border-radius: 1.5rem 1.5rem 0 0;
+    text-align: center;
+  }
+  .add-user-card .card-body {
+    padding: 2.5rem 2.5rem 2rem 2.5rem;
+  }
+  .add-user-card label.form-label {
+    font-size: 1.15em;
+    font-weight: 600;
+    color: #1976d2;
+  }
+  .add-user-card .form-control, .add-user-card .form-select {
+    font-size: 1.15em;
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.75rem;
+  }
+  .add-user-card .btn-primary {
+    font-size: 1.2em;
+    padding: 0.75rem 2.5rem;
+    border-radius: 0.75rem;
+  }
+</style>
+<button class="back-btn" onclick="window.location.href='{{ url_for('admin.dashboard') }}'" title="Back to Dashboard">
+  <i class="bi bi-arrow-left"></i>
+</button>
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <div class="card add-user-card">
+        <div class="card-header text-center">
+          👥 Add New User
+        </div>
+        <div class="card-body">
+
+
+          <!-- Add/Update User Form -->
+          <div class="row">
+            <div class="col-12">
+              <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                  <h6 class="mb-0">
+                    <i class="bi bi-person-plus"></i> Add New User
+                  </h6>
+                </div>
+                <div class="card-body">
+                  <form method="post">
+                    {{ form.hidden_tag() }}
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                {{ form.employee_id.label(class="form-label") }}
+                {{ form.employee_id(class="form-control", placeholder="e.g., E001, EMP123") }}
+                <small class="form-text text-muted">Enter a unique Employee ID (letters and numbers only)</small>
+                {% for error in form.employee_id.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+              </div>
+              <div class="col-md-4 mb-3">
+                {{ form.name.label(class="form-label") }}
+                {{ form.name(class="form-control") }}
+                {% for error in form.name.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+              </div>
+              <div class="col-md-4 mb-3">
+                {{ form.email.label(class="form-label") }}
+                {{ form.email(class="form-control") }}
+                {% for error in form.email.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+              </div>
+              <div class="col-md-4 mb-3">
+                {{ form.password.label(class="form-label") }}
+                {{ form.password(class="form-control") }}
+                {% for error in form.password.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+              </div>
+              <div class="col-md-4 mb-3">
+                {{ form.department_id.label(class="form-label") }}
+                {{ form.department_id(class="form-select") }}
+                {% for error in form.department_id.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+              </div>
+              <div class="col-md-4 mb-3">
+                {{ form.location_id.label(class="form-label") }}
+                {{ form.location_id(class="form-select", readonly=current_user.role == 'Admin' and current_user.location) }}
+                {% for error in form.location_id.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+              </div>
+              <div class="col-md-4 mb-3">
+                {{ form.role_id.label(class="form-label") }}
+                {{ form.role_id(class="form-select", readonly=current_user.role == 'Admin' and current_user.location) }}
+                {% for error in form.role_id.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+              </div>
+              <div class="col-md-4 mb-3 d-flex align-items-center">
+                <div class="form-check mt-4">
+                  {{ form.is_active(class="form-check-input") }}
+                  {{ form.is_active.label(class="form-check-label") }}
+                </div>
+              </div>
+            </div>
+            {{ form.submit(class="btn btn-primary w-100") }}
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Bootstrap Icons CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const employeeIdField = document.querySelector('input[name="employee_id"]');
+    const submitButton = document.querySelector('input[type="submit"]');
+    
+    if (employeeIdField && submitButton) {
+        // Add input validation
+        employeeIdField.addEventListener('input', function() {
+            const value = this.value.trim();
+            if (value.length > 0) {
+                // Remove any existing validation classes
+                this.classList.remove('is-valid', 'is-invalid');
+                
+                // Basic validation - check if it looks like a valid employee ID
+                if (value.match(/^[A-Za-z0-9]+$/)) {
+                    this.classList.add('is-valid');
+                } else {
+                    this.classList.add('is-invalid');
+                }
+            } else {
+                this.classList.remove('is-valid', 'is-invalid');
+            }
+        });
+        
+        // Add form submission validation
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const employeeId = employeeIdField.value.trim();
+            
+            if (!employeeId) {
+                e.preventDefault();
+                alert('Please enter an Employee ID');
+                employeeIdField.focus();
+                return false;
+            }
+            
+            if (!employeeId.match(/^[A-Za-z0-9]+$/)) {
+                e.preventDefault();
+                alert('Employee ID should only contain letters and numbers');
+                employeeIdField.focus();
+                return false;
+            }
+            
+            // Show loading state
+            submitButton.value = 'Adding User...';
+            submitButton.disabled = true;
+        });
+    }
+});
+</script>
+
+{% endblock %} 

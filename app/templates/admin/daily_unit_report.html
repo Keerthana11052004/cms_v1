@@ -1,0 +1,108 @@
+{% extends 'base_logged_in.html' %}
+{% block title %}Daily Unit Report ({{ unit_name }}){% endblock %}
+{% block main_content %}
+<style>
+  .report-card {
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    border-radius: 1rem;
+  }
+  .report-card .card-header {
+    font-size: 1.25rem;
+    padding: 1rem 1.25rem;
+    border-radius: 1rem 1rem 0 0;
+  }
+  .report-card .card-body {
+    padding: 1.25rem;
+  }
+  .table th, .table td {
+    padding: 0.75rem;
+    font-size: 0.95rem;
+  }
+  .form-control, .btn {
+    font-size: 0.95rem;
+    padding: 0.5rem 0.75rem;
+  }
+  h2 {
+    font-size: 1.75rem;
+  }
+  
+  @media (max-width: 768px) {
+    .report-card .card-header {
+      font-size: 1.1rem;
+      padding: 0.75rem 1rem;
+    }
+    .report-card .card-body {
+      padding: 1rem;
+    }
+    .table th, .table td {
+      padding: 0.5rem;
+      font-size: 0.85rem;
+    }
+    .form-control, .btn {
+      font-size: 0.85rem;
+      padding: 0.4rem 0.6rem;
+    }
+    h2 {
+      font-size: 1.5rem;
+    }
+  }
+</style>
+<div class="container" style="max-width: 1200px;">
+    <h2 class="mb-4 fw-bold" style="text-align:left;">📊 Daily Report ({{ unit_name }})</h2>
+
+    <div class="card report-card mb-4">
+        <div class="card-header bg-primary text-white fw-bold">
+            Filter Report
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('admin.daily_unit_report') }}">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label for="report_date" class="form-label">Select Date</label>
+                        <input type="date" class="form-control" id="report_date" name="report_date" value="{{ report_date }}">
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary w-100">Apply Filter</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if daily_reports %}
+    <div class="card report-card">
+        <div class="card-header bg-success text-white fw-bold">
+            Report Data
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Unit</th>
+                            <th>Total Bookings</th>
+                            <th>Consumed Meals</th>
+                            <th>Booked Meals</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in daily_reports %}
+                        <tr>
+                            <td>{{ report.location }}</td>
+                            <td>{{ report.total_bookings }}</td>
+                            <td>{{ report.consumed_meals }}</td>
+                            <td>{{ report.booked_meals }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info" role="alert">
+        No daily report data available for the selected date.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,411 @@
+
+ {% extends 'base_logged_in.html' %}
+{% block title %}Staff Dashboard{% endblock %}
+{% block main_content %}
+<style>
+  .back-btn {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 1000;
+    background: #6c757d;
+    border: none;
+    color: #fff;
+    font-size: 1.2rem;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .back-btn:hover {
+    background: #5a6268;
+    transform: scale(1.08);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  }
+  .dashboard-card {
+    font-size: 1.1rem;
+    max-width: 900px;
+    margin: 0 auto;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    border-radius: 1rem;
+  }
+  .dashboard-card .card-header {
+    font-size: 1.8rem;
+    font-weight: 700;
+    padding: 1.5rem 1.5rem 1.2rem 1.5rem;
+    background: linear-gradient(90deg, #1976d2 0%, #64b5f6 100%);
+    color: #fff;
+    border-radius: 1rem 1rem 0 0;
+  }
+  .dashboard-card .card-body {
+    padding: 1.8rem 1.8rem 1.5rem 1.8rem;
+  }
+  .dashboard-links .btn {
+    font-size: 1.05em;
+    padding: 0.6rem 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    border: none;
+    color: #fff;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+  }
+  .dashboard-links .btn:hover, .dashboard-links .btn:focus {
+    transform: scale(1.05);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    z-index: 2;
+  }
+  .btn-qr-scanner {
+    background: linear-gradient(90deg, #ff512f 0%, #dd2476 100%);
+  }
+  .btn-qr-scanner:hover, .btn-qr-scanner:focus {
+    background: linear-gradient(90deg, #dd2476 0%, #ff512f 100%);
+    color: #fff;
+  }
+  .btn-summary {
+    background: linear-gradient(90deg, #36d1c4 0%, #1e90ff 100%);
+  }
+  .btn-summary:hover, .btn-summary:focus {
+    background: linear-gradient(90deg, #1e90ff 0%, #36d1c4 100%);
+    color: #fff;
+  }
+  .dashboard-card .card.mt-4 {
+    min-width: 320px;
+    font-size: 1.1em;
+    border-radius: 1rem;
+    margin-top: 2rem !important;
+  }
+  .dashboard-card .card-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+
+  /* Mobile Responsiveness */
+  @media (max-width: 1199.98px) {
+    .dashboard-card {
+      font-size: 1rem;
+      max-width: 800px;
+    }
+    .dashboard-card .card-header {
+      font-size: 1.8rem;
+      padding: 1.5rem 1.5rem 1rem 1.5rem;
+    }
+    .dashboard-card .card-body {
+      padding: 1.8rem 1.8rem 1.5rem 1.8rem;
+    }
+    .dashboard-links .btn {
+      font-size: 1em;
+      padding: 0.55rem 0.9rem;
+      margin-bottom: 0.8rem;
+    }
+  }
+
+  @media (max-width: 991.98px) {
+    .dashboard-card {
+      font-size: 0.95rem;
+      max-width: 700px;
+    }
+    .dashboard-card .card-header {
+      font-size: 1.6rem;
+      padding: 1.3rem 1.3rem 0.9rem 1.3rem;
+    }
+    .dashboard-card .card-body {
+      padding: 1.5rem 1.5rem 1.2rem 1.5rem;
+    }
+    .dashboard-links .btn {
+      font-size: 0.95em;
+      padding: 0.5rem 0.8rem;
+      margin-bottom: 0.7rem;
+    }
+    .dashboard-card .card.mt-4 {
+      min-width: 250px;
+      font-size: 0.95em;
+    }
+    .dashboard-card .card-title {
+      font-size: 1.1rem;
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .back-btn {
+      top: 12px;
+      right: 12px;
+      width: 36px;
+      height: 36px;
+      font-size: 0.9rem;
+    }
+    .dashboard-card {
+      font-size: 0.85rem;
+      margin: 0 0.3rem;
+      max-width: 100%;
+    }
+    .dashboard-card .card-header {
+      font-size: 1.4rem;
+      padding: 1.1rem 1.1rem 0.8rem 1.1rem;
+    }
+    .dashboard-card .card-body {
+      padding: 1.3rem 1.3rem 1rem 1.3rem;
+    }
+    .dashboard-links .btn {
+      font-size: 0.9em;
+      padding: 0.45rem 0.75rem;
+      margin-bottom: 0.7rem;
+    }
+    .dashboard-card .card.mt-4 {
+      min-width: 200px;
+      font-size: 0.85em;
+    }
+    .dashboard-card .card-title {
+      font-size: 1rem;
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    .dashboard-card {
+      font-size: 0.85rem;
+      margin: 0 0.25rem;
+    }
+    .dashboard-card .card-header {
+      font-size: 1.4rem;
+      padding: 1.2rem 1.2rem 0.8rem 1.2rem;
+    }
+    .dashboard-card .card-body {
+      padding: 1.6rem 1.6rem 1.2rem 1.6rem;
+    }
+    .dashboard-links .btn {
+      font-size: 0.9em;
+      padding: 0.55rem 0.8rem;
+      margin-bottom: 0.8rem;
+    }
+    .dashboard-card .card.mt-4 {
+      min-width: 200px;
+      font-size: 0.85em;
+    }
+    .dashboard-card .card-title {
+      font-size: 1rem;
+    }
+  }
+
+  @media (max-width: 375px) {
+    .dashboard-card {
+      font-size: 0.8rem;
+    }
+    .dashboard-card .card-header {
+      font-size: 1.2rem;
+      padding: 1rem 1rem 0.7rem 1rem;
+    }
+    .dashboard-card .card-body {
+      padding: 1.4rem 1.4rem 1rem 1.4rem;
+    }
+    .dashboard-links .btn {
+      font-size: 0.85em;
+      padding: 0.5rem 0.7rem;
+      margin-bottom: 0.7rem;
+    }
+    .dashboard-card .card.mt-4 {
+      min-width: 180px;
+      font-size: 0.8em;
+    }
+    .dashboard-card .card-title {
+      font-size: 0.9rem;
+    }
+  }
+  .chart-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 280px;
+    max-width: 500px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 12px rgba(0,0,0,0.05);
+    border: 1px solid #e0e0e0;
+  }
+  /* Force Chart.js legend to single line */
+  .chartjs-render-monitor + .chartjs-legend ul,
+  .chartjs-legend ul {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    justify-content: center;
+    padding: 0 8px !important;
+    margin: 0 !important;
+    white-space: nowrap;
+  }
+  .chartjs-legend li {
+    margin-right: 18px !important;
+    margin-bottom: 0 !important;
+    white-space: nowrap;
+  }
+</style>
+<button class="back-btn" id="logoutBtn" data-href="{{ url_for('staff.logout') }}" title="{{ _('Logout') }}">
+  <i class="bi bi-box-arrow-right"></i>
+</button>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
+            window.location.href = this.getAttribute('data-href');
+        });
+    }
+});
+</script>
+<div class="container-fluid py-5" style="min-height: 100vh;">
+  <div class="row justify-content-center">
+    <div class="col-12">
+      <div class="card dashboard-card">
+        <div class="card-header text-center">
+          📊 Staff Dashboard
+        </div>
+        <div class="card-body">
+          <div class="row dashboard-links justify-content-center mb-4">
+            <div class="col-lg-4 col-md-6 col-sm-12">
+              <a href="{{ url_for('staff.qr_scanner') }}" class="btn btn-qr-scanner w-100">QR Code Scanner</a>
+            </div>
+            <div class="col-lg-4 col-md-6 col-sm-12">
+              <a href="{{ url_for('staff.summary') }}" class="btn btn-summary w-100">Daily Summary</a>
+            </div>
+            <div class="col-lg-4 col-md-6 col-sm-12">
+              <a href="{{ url_for('staff.monthly_summary') }}" class="btn btn-summary w-100">Monthly Summary</a>
+            </div>
+          </div>
+
+          <!-- Remove Daily and Monthly Summary tables from dashboard -->
+          <div class="card mt-4">
+            <div class="card-body text-center">
+              <h5 class="card-title">Real-time Meal Count</h5>
+              <!-- TODO: Show real-time meal count summary -->
+              <p class="card-text">No data available.</p>
+            </div>
+          </div>
+          <!-- Pie Chart for Unit-wise Meals Booked -->
+          <div class="card mt-4">
+            <div class="card-body">
+              <h5 class="card-title text-center mb-3">Unit-wise Meals Booked</h5>
+              <div class="chart-container">
+                <canvas id="unitPieChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Modal for Unit Meal Breakdown -->
+<div class="modal fade" id="unitBreakdownModal" tabindex="-1" aria-labelledby="unitBreakdownModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="unitBreakdownModalLabel">Unit Wise Meal Breakdown</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <canvas id="unitBarChart" style="max-width: 400px; height: 300px;"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Bootstrap Icons CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const ctx = document.getElementById('unitPieChart').getContext('2d');
+  const pieLabels = {{ pie_labels|tojson }};
+  const pieValues = {{ pie_values|tojson }};
+  const mealBreakdown = {{ meal_breakdown|tojson }};
+  let barChart = null;
+
+  const pieChart = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: pieLabels,
+      datasets: [{
+        data: pieValues,
+        backgroundColor: [
+          '#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f', '#edc949', '#af7aa1', '#ff9da7', '#9c755f', '#bab0ab',
+          '#6b5b95', '#feb236', '#d64161', '#ff7b25', '#b5e7a0', '#86af49', '#2a4d69', '#4b86b4', '#adcbe3', '#eab543'
+        ],
+        borderWidth: 0,
+        borderColor: 'transparent',
+        hoverBorderColor: '#222',
+        hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            boxWidth: 18,
+            boxHeight: 18,
+            padding: 18,
+            font: { size: 15, weight: 'bold' },
+            color: '#333',
+          }
+        },
+        title: {
+          display: false
+        },
+        tooltip: {
+          backgroundColor: '#222',
+          titleColor: '#fff',
+          bodyColor: '#fff',
+          borderColor: '#fff',
+          borderWidth: 1,
+          padding: 12,
+          caretSize: 8,
+          cornerRadius: 8
+        }
+      },
+      onClick: function(evt, elements) {
+        if (elements.length > 0) {
+          const idx = elements[0].index;
+          const unit = pieLabels[idx];
+          const breakdown = mealBreakdown[unit];
+          // Show modal and render bar chart
+          const modal = new bootstrap.Modal(document.getElementById('unitBreakdownModal'));
+          modal.show();
+          // Destroy previous chart if exists
+          if (barChart) barChart.destroy();
+          const barCtx = document.getElementById('unitBarChart').getContext('2d');
+          barChart = new Chart(barCtx, {
+            type: 'bar',
+            data: {
+              labels: ['Breakfast', 'Lunch', 'Dinner'],
+              datasets: [{
+                label: unit + ' - Meals Booked',
+                data: [breakdown.Breakfast, breakdown.Lunch, breakdown.Dinner],
+                backgroundColor: ['#4e79a7', '#f28e2b', '#e15759'],
+                borderRadius: 8,
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: { display: false },
+                title: { display: false }
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: { stepSize: 1 }
+                }
+              }
+            }
+          });
+        }
+      }
+    }
+  });
+});
+</script>
+{% endblock %} 

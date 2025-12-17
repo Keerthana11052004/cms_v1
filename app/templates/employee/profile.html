@@ -1,0 +1,204 @@
+{% extends 'base_logged_in.html' %}
+{% block title %}Profile{% endblock %}
+{% block main_content %}
+<style>
+  .back-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: #6c757d;
+    border: none;
+    color: #fff;
+    font-size: 1.2rem;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .back-btn:hover {
+    background: #5a6268;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  .profile-card {
+    font-size: 1rem;
+    max-width: 650px;
+    margin: 0 auto;
+    box-shadow: 0 1px 12px rgba(0,0,0,0.06);
+    border-radius: 0.75rem;
+  }
+  .profile-card .card-header {
+    font-size: 1.6rem;
+    font-weight: 700;
+    padding: 1.2rem 1.2rem 0.7rem 1.2rem;
+    background: linear-gradient(90deg, #1976d2 0%, #64b5f6 100%);
+    color: #fff;
+    border-radius: 0.75rem 0.75rem 0 0;
+  }
+  .profile-card .card-body {
+    padding: 1.5rem 1.5rem 1.2rem 1.5rem;
+  }
+  .profile-card label.form-label {
+    font-size: 1em;
+    font-weight: 600;
+    color: #1976d2;
+  }
+  .profile-card .form-control, .profile-card .form-select {
+    font-size: 1em;
+    padding: 0.5rem 0.8rem;
+    border-radius: 0.4rem;
+  }
+  .profile-card .btn-primary {
+    font-size: 1em;
+    padding: 0.5rem 1.5rem;
+    border-radius: 0.4rem;
+  }
+</style>
+<button class="back-btn" id="backToDashboardBtn" data-href="{{ url_for('employee.dashboard') }}" title="Back to Dashboard">
+  <i class="bi bi-arrow-left"></i>
+</button>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const backBtn = document.getElementById('backToDashboardBtn');
+    if (backBtn) {
+        backBtn.addEventListener('click', function() {
+            window.location.href = this.getAttribute('data-href');
+        });
+    }
+});
+</script>
+<style>
+  @media (max-width: 1199.98px) {
+    .profile-card {
+      font-size: 0.95rem;
+      max-width: 600px;
+    }
+    .profile-card .card-header {
+      font-size: 1.4rem;
+      padding: 1.1rem 1.1rem 0.6rem 1.1rem;
+    }
+    .profile-card .card-body {
+      padding: 1.2rem 1.2rem 1rem 1.2rem;
+    }
+    .profile-card label.form-label {
+      font-size: 0.95em;
+    }
+    .profile-card .form-control, .profile-card .form-select {
+      font-size: 0.95em;
+      padding: 0.45rem 0.75rem;
+    }
+    .profile-card .btn-primary {
+      font-size: 0.95em;
+      padding: 0.45rem 1.4rem;
+    }
+  }
+  @media (max-width: 991.98px) {
+    .profile-card {
+      font-size: 0.9rem;
+      max-width: 550px;
+    }
+    .profile-card .card-header {
+      font-size: 1.2rem;
+      padding: 0.9rem 0.9rem 0.5rem 0.9rem;
+    }
+    .profile-card .card-body {
+      padding: 1rem 1rem 0.8rem 1rem;
+    }
+    .profile-card label.form-label {
+      font-size: 0.9em;
+    }
+    .profile-card .form-control, .profile-card .form-select {
+      font-size: 0.9em;
+      padding: 0.4rem 0.65rem;
+    }
+    .profile-card .btn-primary {
+      font-size: 0.9em;
+      padding: 0.4rem 1.2rem;
+    }
+  }
+  @media (max-width: 767.98px) {
+    .profile-card {
+      font-size: 0.85rem;
+      margin: 0 0.2rem;
+      max-width: 100%;
+    }
+    .profile-card .card-header {
+      font-size: 1.1rem;
+      padding: 0.8rem 0.8rem 0.4rem 0.8rem;
+    }
+    .profile-card .card-body {
+      padding: 0.9rem 0.9rem 0.7rem 0.9rem;
+    }
+    .profile-card label.form-label {
+      font-size: 0.85em;
+    }
+    .profile-card .form-control, .profile-card .form-select {
+      font-size: 0.85em;
+      padding: 0.35rem 0.6rem;
+    }
+    .profile-card .btn-primary {
+      font-size: 0.85em;
+      padding: 0.35rem 1.1rem;
+    }
+  }
+</style>
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <div class="card profile-card">
+        <div class="card-header text-center">
+          🧑‍💼 Employee Profile
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {{ form.hidden_tag() }}
+            <div class="row mb-3">
+              <div class="col-md-6">
+                {{ form.name.label(class="form-label") }}
+                {{ form.name(class="form-control") }}
+              </div>
+              <div class="col-md-6">
+                {{ form.email.label(class="form-label") }}
+                {{ form.email(class="form-control") }}
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                {{ form.employee_id.label(class="form-label") }}
+                {{ form.employee_id(class="form-control") }}
+              </div>
+              <div class="col-md-6">
+                {{ form.department_id.label(class="form-label") }}
+                {{ form.department_id(class="form-select") }}
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                {{ form.location_id.label(class="form-label") }}
+                {{ form.location_id(class="form-select") }}
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                {{ form.password.label(class="form-label") }}
+                {{ form.password(class="form-control") }}
+              </div>
+              <div class="col-md-6">
+                {{ form.confirm_password.label(class="form-label") }}
+                {{ form.confirm_password(class="form-control") }}
+              </div>
+            </div>
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+              {{ form.submit(class="btn btn-primary") }}
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Bootstrap Icons CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+{% endblock %} 

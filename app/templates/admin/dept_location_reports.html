@@ -1,0 +1,490 @@
+{% extends 'base_logged_in.html' %}
+{% block title %}Department/Location Reports{% endblock %}
+{% block main_content %}
+<style>
+  .back-btn {
+    position: fixed;
+    top: 15px; /* Adjusted position */
+    left: 15px; /* Adjusted position */
+    z-index: 1000;
+    background: #6c757d;
+    border: none;
+    color: #fff;
+    font-size: 1rem; /* Smaller font size */
+    border-radius: 50%;
+    width: 36px; /* Smaller width */
+    height: 36px; /* Smaller height */
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15); /* Reduced shadow */
+  }
+  .back-btn:hover {
+    background: #5a6268;
+    transform: scale(1.05); /* Reduced scale */
+    box-shadow: 0 3px 12px rgba(0,0,0,0.18); /* Reduced shadow */
+  }
+  .dept-location-card {
+    font-size: 0.875rem; /* Smaller base font size */
+    max-width: 100%; /* Full width for compact design */
+    margin: 0 auto;
+    box-shadow: 0 3px 24px rgba(0,0,0,0.08); /* Reduced shadow */
+    border-radius: 1rem; /* Smaller border radius */
+  }
+  .dept-location-card .card-header {
+    font-size: 1.5rem; /* Smaller font size */
+    font-weight: 600; /* Reduced font weight */
+    padding: 1.5rem; /* Reduced padding */
+    background: linear-gradient(90deg, #1976d2 0%, #64b5f6 100%);
+    color: #fff;
+    border-radius: 1rem 1rem 0 0;
+    text-align: center;
+  }
+  .dept-location-card .card-body {
+    padding: 1.5rem; /* Reduced padding */
+  }
+  .dept-location-card table {
+    font-size: 0.875rem; /* Smaller font size */
+    border-radius: 0.75rem; /* Smaller border radius */
+    overflow: hidden;
+  }
+  .dept-location-card th, .dept-location-card td {
+    padding: 0.75rem; /* Reduced padding */
+    vertical-align: middle;
+    text-align: center;
+  }
+  .dept-location-card th {
+    background: #e3f2fd;
+    color: #1976d2;
+    font-size: 0.9375rem; /* Smaller font size */
+    font-weight: 500; /* Reduced font weight */
+  }
+  .dept-location-card td {
+    background: #fff;
+    color: #333;
+  }
+  .meal-count {
+    font-weight: 500;
+    color: #1976d2;
+  }
+  .consumed-count {
+    font-weight: 500;
+    color: #4caf50;
+  }
+  .table-info {
+    background-color: #e3f2fd !important;
+    font-weight: 500;
+  }
+  .table-info td {
+    background-color: #e3f2fd !important;
+    color: #1976d2 !important;
+  }
+  .filter-form {
+    background: #f8f9fa;
+    padding: 1rem; /* Reduced padding */
+    border-radius: 0.5rem; /* Smaller border radius */
+    margin-bottom: 1.5rem; /* Reduced margin */
+  }
+  .filter-form .form-label {
+    font-weight: 500; /* Reduced font weight */
+    color: #495057;
+    font-size: 0.875rem; /* Smaller font size */
+  }
+  
+  /* Print-specific styles */
+  @media print {
+    body * {
+      visibility: hidden;
+    }
+    .dept-location-card, .dept-location-card * {
+      visibility: visible;
+    }
+    .dept-location-card {
+      width: 100%;
+      margin: 0;
+      box-shadow: none;
+      border: none;
+    }
+    body {
+        padding: 0;
+        margin: 0;
+    }
+    .back-btn, .btn, form {
+        display: none !important;
+    }
+    
+    /* Optimize page layout for printing */
+    body {
+      margin: 0;
+      padding: 0;
+      font-size: 10pt; /* Smaller font size */
+      line-height: 1.3; /* Reduced line height */
+      color: #000;
+      background: #fff;
+    }
+    
+    .container {
+      max-width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    
+    .dept-location-card {
+      box-shadow: none !important;
+      border: 1px solid #000 !important;
+      border-radius: 0 !important;
+      margin: 0 !important;
+      max-width: 100% !important;
+    }
+    
+    .dept-location-card .card-header {
+      background: #f0f0f0 !important;
+      color: #000 !important;
+      border-bottom: 1px solid #000 !important;
+      padding: 0.75rem !important;
+      font-size: 14pt !important;
+      text-align: center !important;
+    }
+    
+    .dept-location-card .card-body {
+      padding: 0.75rem !important;
+    }
+    
+    /* Table styling for print */
+    .table-responsive {
+      overflow: visible !important;
+    }
+    
+    table {
+      width: 100% !important;
+      border-collapse: collapse !important;
+      font-size: 9pt !important;
+      page-break-inside: avoid;
+    }
+    
+    th, td {
+      border: 1px solid #000 !important;
+      padding: 6px !important;
+      text-align: left !important;
+      vertical-align: top !important;
+    }
+    
+    th {
+      background: #f0f0f0 !important;
+      color: #000 !important;
+      font-weight: bold !important;
+    }
+    
+    td {
+      background: #fff !important;
+      color: #000 !important;
+    }
+    
+    .table-info td {
+      background: #f0f0f0 !important;
+      color: #000 !important;
+      font-weight: bold !important;
+    }
+    
+    /* Ensure proper page breaks */
+    .dept-location-card {
+      page-break-inside: avoid;
+    }
+    
+    /* Print header */
+    @page {
+      margin: 0.4in;
+      size: A4;
+    }
+    
+    /* Optimize table for print */
+    .table-responsive {
+      max-height: none !important;
+      overflow: visible !important;
+    }
+    
+    /* Ensure table fits on page */
+    table {
+      font-size: 9pt !important;
+      margin-bottom: 0 !important;
+      margin-top: 0.375rem !important;
+    }
+    
+    th, td {
+      padding: 3px 4px !important;
+      word-wrap: break-word;
+    }
+    
+    /* Make sure long content doesn't break layout */
+    td {
+      max-width: 1.5in;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    /* Add report title and date at the top */
+    .print-header {
+      display: block !important;
+      text-align: center;
+      margin-bottom: 0.375rem;
+      font-size: 12pt;
+      font-weight: bold;
+    }
+    
+    .print-date {
+      display: block !important;
+      text-align: center;
+      margin-bottom: 0.375rem;
+      font-size: 8pt;
+    }
+    
+    /* Reduce card body padding */
+    .dept-location-card .card-body {
+      padding: 0.375rem !important;
+    }
+    
+    /* Reduce card header padding */
+    .dept-location-card .card-header {
+      padding: 0.375rem !important;
+      font-size: 12pt !important;
+    }
+  }
+  
+  /* Hide print header in screen view */
+  .print-header,
+  .print-date {
+    display: none;
+  }
+  
+  /* Pagination styles */
+  .pagination-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 15px; /* Reduced margin */
+    margin-bottom: 15px; /* Reduced margin */
+  }
+  
+  .pagination {
+    margin: 0;
+  }
+  
+  .pagination .page-item .page-link {
+    color: #1976d2;
+    padding: 0.375rem 0.75rem; /* Smaller pagination buttons */
+    font-size: 0.8125rem;
+  }
+  
+  .pagination .page-item.active .page-link {
+    background-color: #1976d2;
+    border-color: #1976d2;
+  }
+  
+  /* Table container with max height and scroll */
+  .table-scroll-container {
+    max-height: 50vh; /* Reduced height */
+    overflow-y: auto;
+    margin-bottom: 15px; /* Reduced margin */
+  }
+  
+  /* Compact form elements */
+  .form-control, .form-select, .btn {
+    padding: 0.375rem 0.75rem; /* Smaller form elements */
+    font-size: 0.875rem;
+    height: calc(1.5em + 0.75rem + 2px);
+  }
+  
+  .btn {
+    padding: 0.375rem 0.75rem; /* Smaller buttons */
+    font-size: 0.875rem;
+  }
+  
+  .btn i {
+    font-size: 0.875rem; /* Smaller icon size */
+  }
+</style>
+<button class="back-btn" id="backBtn" title="Back to Dashboard">
+  <i class="bi bi-arrow-left"></i>
+</button>
+<div class="container py-4"> <!-- Reduced padding -->
+  <div class="row justify-content-center">
+    <div class="col-lg-12">
+      <div class="card dept-location-card">
+        <div class="card-header text-center">
+          📄 Department / Location Reports
+        </div>
+        <div class="card-body">
+          <!-- Print-only header -->
+          <div class="print-header">Department / Location Reports</div>
+          <div class="print-date">
+            {% if selected_department and selected_location %}
+              Report for: {{ selected_department }} - {{ selected_location }}
+            {% elif selected_department %}
+              Report for Department: {{ selected_department }}
+            {% elif selected_location %}
+              Report for Location: {{ selected_location }}
+            {% else %}
+              Report for: All Departments and Locations
+            {% endif %}
+            <br>Generated on: <span id="current-date"></span>
+          </div>
+          
+          <form class="row g-3 mb-3 filter-form"> <!-- Reduced margin -->
+            <div class="col-md-4">
+              <label for="department" class="form-label">Department</label>
+              <select class="form-select" id="department" name="department">
+                <option value="">All Departments</option>
+                {% for dept in departments %}
+                <option value="{{ dept }}" {% if selected_department == dept %}selected{% endif %}>{{ dept }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label for="location" class="form-label">Location</label>
+              <select class="form-select" id="location" name="location">
+                <option value="">All Locations</option>
+                {% for loc in locations %}
+                <option value="{{ loc }}" {% if selected_location == loc %}selected{% endif %}>{{ loc }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4 align-self-end">
+              <button type="submit" class="btn btn-primary me-1"> <!-- Reduced margin -->
+                <i class="bi bi-funnel me-1"></i>Filter
+              </button>
+              <a href="{{ url_for('admin.dept_location_reports') }}" class="btn btn-outline-secondary me-1"> <!-- Reduced margin -->
+                <i class="bi bi-arrow-clockwise me-1"></i>Clear
+              </a>
+              <button class="btn btn-outline-secondary print-btn" onclick="window.print()" type="button">
+                <i class="bi bi-printer me-1"></i>Print Report
+              </button>
+            </div>
+          </form>
+          
+          <div class="table-scroll-container">
+            <table class="table table-bordered table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Department</th>
+                  <th>Location</th>
+                  <th>Meals Booked</th>
+                  <th>Meals Consumed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for report in reports %}
+                <tr>
+                  <td>{{ report.department or '-' }}</td>
+                  <td>{{ report.location or '-' }}</td>
+                  <td class="meal-count">{{ report.meals_booked or 0 }}</td>
+                  <td class="consumed-count">{{ report.meals_consumed or 0 }}</td>
+                </tr>
+                {% endfor %}
+                {% if reports %}
+                <tr class="table-info">
+                  <td><strong>Total</strong></td>
+                  <td>-</td>
+                  <td class="meal-count"><strong>{{ reports | sum(attribute='meals_booked') or 0 }}</strong></td>
+                  <td class="consumed-count"><strong>{{ reports | sum(attribute='meals_consumed') or 0 }}</strong></td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="4" class="text-center text-muted">
+                    <i class="bi bi-info-circle me-1"></i> <!-- Smaller icon -->
+                    No data found for the selected filters
+                  </td>
+                </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- Pagination -->
+          {% if pagination and pagination.pages > 1 %}
+          <div class="pagination-container">
+            <nav aria-label="Page navigation">
+              <ul class="pagination">
+                {% if pagination.has_prev %}
+                  <li class="page-item">
+                    <a class="page-link" href="{{ url_for('admin.dept_location_reports', page=pagination.prev_num, department=selected_department, location=selected_location) }}" aria-label="Previous">
+                      <span aria-hidden="true">&laquo;</span>
+                    </a>
+                  </li>
+                {% endif %}
+                
+                {% for page_num in pagination.iter_pages() %}
+                  {% if page_num %}
+                    {% if page_num != pagination.page %}
+                      <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.dept_location_reports', page=page_num, department=selected_department, location=selected_location) }}">{{ page_num }}</a>
+                      </li>
+                    {% else %}
+                      <li class="page-item active">
+                        <span class="page-link">{{ page_num }}</span>
+                      </li>
+                    {% endif %}
+                  {% else %}
+                    <li class="page-item disabled">
+                      <span class="page-link">…</span>
+                    </li>
+                  {% endif %}
+                {% endfor %}
+                
+                {% if pagination.has_next %}
+                  <li class="page-item">
+                    <a class="page-link" href="{{ url_for('admin.dept_location_reports', page=pagination.next_num, department=selected_department, location=selected_location) }}" aria-label="Next">
+                      <span aria-hidden="true">&raquo;</span>
+                    </a>
+                  </li>
+                {% endif %}
+              </ul>
+            </nav>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Bootstrap Icons CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set current date for print header
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-GB') + ' ' + now.toLocaleTimeString('en-GB', {hour: '2-digit', minute: '2-digit'});
+    document.getElementById('current-date').textContent = dateStr;
+    
+    // Back button functionality
+    const backBtn = document.getElementById('backBtn');
+    if (backBtn) {
+        backBtn.addEventListener('click', function() {
+            window.location.href = '{{ url_for("admin.dashboard") }}';
+        });
+    }
+    
+    // Enhanced print functionality
+    const printButton = document.querySelector('button[onclick="window.print()"]');
+    if (printButton) {
+        printButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Add a small delay to ensure print styles are applied
+            setTimeout(function() {
+                window.print();
+            }, 100);
+        });
+    }
+});
+
+// Print event listeners
+window.addEventListener('beforeprint', function() {
+    // Ensure print styles are applied
+    document.body.classList.add('printing');
+});
+
+window.addEventListener('afterprint', function() {
+    // Remove print class after printing
+    document.body.classList.remove('printing');
+});
+</script>
+
+{% endblock %} 

@@ -1,0 +1,672 @@
+{% extends 'base_logged_in.html' %}
+{% block title %}QR Code Scanner{% endblock %}
+{% block main_content %}
+<!-- CSRF Token for AJAX requests -->
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<script>
+  // Debug CSRF token on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    console.log('Page loaded - CSRF Token:', csrfToken);
+  });
+</script>
+<style>
+  .back-btn {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 1000;
+    background: #6c757d;
+    border: none;
+    color: #fff;
+    font-size: 1.2rem;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .back-btn:hover {
+    background: #5a6268;
+    transform: scale(1.08);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  }
+  .scanner-card {
+    font-size: 1.1rem;
+    max-width: 900px;
+    margin: 0 auto;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    border-radius: 1rem;
+  }
+  .scanner-card .card-header {
+    font-size: 1.8rem;
+    font-weight: 700;
+    padding: 1.5rem 1.5rem 1.2rem 1.5rem;
+    background: linear-gradient(90deg, #1976d2 0%, #64b5f6 100%);
+    color: #fff;
+    border-radius: 1rem 1rem 0 0;
+    text-align: center;
+  }
+  .scanner-card .card-body {
+    padding: 1.8rem 1.8rem 1.5rem 1.8rem;
+  }
+  .scanner-btn {
+    font-size: 1.05em;
+    padding: 0.6rem 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    border: none;
+    color: #fff;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+    background: linear-gradient(90deg, #ff512f 0%, #dd2476 100%);
+  }
+  .scanner-btn:hover, .scanner-btn:focus {
+    transform: scale(1.05);
+    background: linear-gradient(90deg, #dd2476 0%, #ff512f 100%);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    color: #fff;
+  }
+  .manual-btn {
+    background: linear-gradient(90deg, #36d1c4 0%, #1e90ff 100%);
+  }
+  .manual-btn:hover, .manual-btn:focus {
+    background: linear-gradient(90deg, #1e90ff 0%, #36d1c4 100%);
+    color: #fff;
+  }
+</style>
+<button class="back-btn" id="backBtn" data-href="{{ dashboard_url }}" title="Back to Dashboard">
+  <i class="bi bi-arrow-left"></i>
+</button>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const backBtn = document.getElementById('backBtn');
+    if (backBtn) {
+        backBtn.addEventListener('click', function() {
+            window.location.href = this.getAttribute('data-href');
+        });
+    }
+});
+</script>
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-12">
+      <div class="card scanner-card">
+        <div class="card-header text-center">
+          📲 QR Code Scanner
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6 mb-4">
+              <div class="card h-100">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">Scan QR Code</h5>
+                </div>
+                <div class="card-body">
+                  <div id="reader" style="width: 100%; height: 250px;"></div>
+                  <div id="scannerStatus" class="mt-2 text-center" style="display: none;">
+                    <small class="text-success">
+                      <i class="bi bi-camera-video"></i> Scanner Active - Ready to scan QR codes
+                    </small>
+                  </div>
+                  <div class="mt-3">
+                    <button id="startScan" class="scanner-btn w-100">Start Scanner</button>
+                    <button id="stopScan" class="scanner-btn w-100" style="display: none;">Stop Scanner</button>
+                  </div>
+                  <div class="mt-3">
+                    <label for="qr-input-file" class="form-label">Or select an image file</label>
+                    <input type="file" id="qr-input-file" accept="image/*" class="form-control" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6 mb-4">
+              <div class="card h-100">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">Manual Entry</h5>
+                </div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <label for="manual_qr" class="form-label">Enter QR Code Data</label>
+                    <textarea class="form-control" id="manual_qr" rows="4" placeholder="Paste QR code data here (format: booking_id,employee_id,date,shift)..."></textarea>
+                    <small class="form-text text-muted">Format: Booking ID, Employee ID, Date (YYYY-MM-DD), Shift (Breakfast/Lunch/Dinner)</small>
+                  </div>
+                  <button id="processManual" class="scanner-btn manual-btn w-100">Process QR Code</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Results Modal -->
+<div class="modal fade" id="resultModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">QR Code Result</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="resultContent"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Include HTML5-QRCode library -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<script>
+let html5QrcodeScanner = null;
+let html5QrCodeFile = null;
+let isScannerRunning = false; // Track the actual state of the scanner (running/stopped)
+let lastProcessedQR = null; // Track the last processed QR code to prevent duplicates
+let isProcessingQR = false; // Flag to prevent multiple simultaneous QR processing
+
+// Function to initialize and start the scanner
+function startScanner() {
+  if (isScannerRunning) {
+    console.log("Scanner already running.");
+    return;
+  }
+  
+  // Clear the last processed QR when starting scanner
+  lastProcessedQR = null;
+  isProcessingQR = false;
+
+  if (html5QrcodeScanner) {
+    // If scanner instance exists but is stopped, just start it
+    html5QrcodeScanner.start()
+      .then(() => {
+        console.log("Scanner started.");
+        isScannerRunning = true;
+        document.getElementById('startScan').style.display = 'none';
+        document.getElementById('stopScan').style.display = 'inline-block';
+        document.getElementById('scannerStatus').style.display = 'block';
+      })
+      .catch(err => {
+        console.error("Error starting existing scanner:", err);
+        displayCameraError(err);
+      });
+  } else {
+    // Create a new scanner instance if none exists
+    html5QrcodeScanner = new Html5QrcodeScanner(
+      "reader", 
+      { 
+        fps: 15, // Increased FPS for more responsive scanning
+        qrbox: {width: 250, height: 250},
+        aspectRatio: 1.0,
+        showTorchButtonIfSupported: true,
+        showZoomSliderIfSupported: true,
+        defaultZoomValueIfSupported: 2,
+        useBarCodeDetectorIfSupported: true
+      },
+      false
+    );
+    
+    html5QrcodeScanner.render(onScanSuccess, onScanFailure)
+      .then(() => {
+        console.log("New scanner rendered and started.");
+        isScannerRunning = true;
+        document.getElementById('startScan').style.display = 'none';
+        document.getElementById('stopScan').style.display = 'inline-block';
+        document.getElementById('scannerStatus').style.display = 'block';
+      })
+      .catch(err => {
+        console.error("Error rendering new scanner:", err);
+        displayCameraError(err);
+      });
+  }
+}
+
+// Function to stop the scanner
+function stopScanner() {
+  if (html5QrcodeScanner && isScannerRunning) {
+    html5QrcodeScanner.stop()
+      .then(() => {
+        console.log("Scanner stopped.");
+        isScannerRunning = false;
+        document.getElementById('startScan').style.display = 'inline-block';
+        document.getElementById('stopScan').style.display = 'none';
+        document.getElementById('scannerStatus').style.display = 'none';
+      })
+      .catch(err => {
+        console.error("Error stopping scanner:", err);
+      });
+  }
+  if (html5QrCodeFile && html5QrCodeFile.stop) {
+    html5QrCodeFile.stop();
+  }
+}
+
+document.getElementById('startScan').addEventListener('click', startScanner);
+document.getElementById('stopScan').addEventListener('click', stopScanner);
+
+
+function displayCameraError(err) {
+  const resultContent = document.getElementById('resultContent');
+  resultContent.innerHTML = `
+    <div class="alert alert-danger">
+      <h6>❌ Camera Access Error</h6>
+      <p>Could not start camera. Please ensure you have granted camera permissions to this site and no other application is using the camera.</p>
+      <p><small>Error details: ${err || 'Unknown error'}</small></p>
+    </div>
+  `;
+  const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+  modal.show();
+  document.getElementById('startScan').style.display = 'inline-block';
+  document.getElementById('stopScan').style.display = 'none';
+  document.getElementById('scannerStatus').style.display = 'none';
+  isScannerRunning = false; // Reset active state on error
+}
+
+function onScanSuccess(decodedText, decodedResult) {
+  // Don't stop the scanner - let it continue scanning
+  console.log("QR Code detected:", decodedText);
+  
+  // Hide any previous error messages
+  const modalElement = document.getElementById('resultModal');
+  const modal = bootstrap.Modal.getInstance(modalElement);
+  if (modal) {
+    modal.hide();
+  }
+  
+  // Process the QR code immediately without stopping the scanner
+  processQRCode(decodedText);
+}
+
+let scanFailureTimeout;
+function onScanFailure(error) {
+  // Clear any existing timeout to prevent multiple modals
+  clearTimeout(scanFailureTimeout);
+
+  // Set a timeout to show the modal after a delay (e.g., 2 seconds)
+  scanFailureTimeout = setTimeout(() => {
+    const resultContent = document.getElementById('resultContent');
+    const modalElement = document.getElementById('resultModal');
+    const modal = bootstrap.Modal.getInstance(modalElement);
+
+    // Only show if the modal is not already visible with a success message
+    if (!modal || !modalElement.classList.contains('show') || !resultContent.innerHTML.includes('alert-success')) {
+      resultContent.innerHTML = `
+        <div class="alert alert-warning">
+          <h6>⚠️ QR Code Not Detected / Not Visible</h6>
+          <p>Please ensure the QR code is clearly visible and well-lit within the camera's view.</p>
+          <p><small>Error details: ${error || 'Unknown error'}</small></p>
+        </div>
+      `;
+      const newModal = new bootstrap.Modal(modalElement);
+      newModal.show();
+
+       // Automatically close modal after 2.5 seconds for this error message
+       setTimeout(() => {
+         newModal.hide(); // This will trigger the 'hidden.bs.modal' event
+       }, 2500); // 2.5 seconds
+    }
+  }, 2000); // 2-second delay
+}
+
+document.getElementById('processManual').addEventListener('click', function() {
+  const qrData = document.getElementById('manual_qr').value.trim();
+  if (qrData) {
+    processQRCode(qrData);
+    document.getElementById('manual_qr').value = '';
+  } else {
+    alert('Please enter QR code data');
+  }
+});
+
+function processQRCode(qrData) {
+  // Prevent processing the same QR code multiple times
+  if (isProcessingQR) {
+    console.log("QR code is already being processed, ignoring duplicate scan");
+    return;
+  }
+  
+  // Check if this is the same QR code as the last one processed (with shorter timeout)
+  if (lastProcessedQR === qrData) {
+    console.log("Same QR code as last processed, ignoring duplicate scan");
+    return;
+  }
+  
+  isProcessingQR = true;
+  lastProcessedQR = qrData;
+  
+  // Clear the lastProcessedQR after 5 seconds to allow scanning the same QR code again
+  setTimeout(() => {
+    lastProcessedQR = null;
+  }, 5000);
+  
+  // Debug CSRF token
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+  console.log('CSRF Token:', csrfToken);
+  
+   fetch('/cms/staff/scan_qr', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': csrfToken
+    },
+    body: JSON.stringify({
+      qr_data: qrData
+    })
+  })
+  .then(response => {
+    console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    console.log("Backend response data:", data); // Keep this for debugging
+    const resultContent = document.getElementById('resultContent');
+    
+    let bookingDetailsHtml = '';
+    let alertClass;
+    let icon;
+    let statusTextForDisplay;
+    let statusClassForDisplay;
+
+    if (data.message.includes('already been consumed')) {
+        alertClass = 'danger'; // Red for already consumed
+        icon = '❌';
+        statusTextForDisplay = 'Consumed (Already Scanned)'; // More descriptive
+        statusClassForDisplay = 'danger';
+    } else if (data.message.includes('Meal Verified Successfully')) {
+        alertClass = 'success'; // Green for first successful scan
+        icon = '✅';
+        statusTextForDisplay = 'Consumed'; // Standard consumed status
+        statusClassForDisplay = 'success';
+    } else if (data.success) {
+        alertClass = 'success'; // Green for other successful operations
+        icon = '✅';
+        statusTextForDisplay = data.booking ? (data.booking.status || 'Success') : 'Success';
+        statusClassForDisplay = 'success';
+    } else {
+        alertClass = 'danger'; // Red for other errors
+        icon = '❌';
+        statusTextForDisplay = data.booking ? (data.booking.status || 'Error') : 'Error';
+        statusClassForDisplay = 'danger';
+    }
+
+    if (data.booking) {
+      bookingDetailsHtml = `
+        <hr>
+        <p><strong>Employee:</strong> ${data.booking.employee_name}</p>
+        <p><strong>ID:</strong> ${data.booking.employee_id}</p>
+        <p><strong>Unit:</strong> ${data.booking.unit}</p>
+        <p><strong>Date:</strong> ${data.booking.date}</p>
+        <p><strong>Shift:</strong> ${data.booking.shift}</p>
+        <p><strong>Status:</strong> <span class="badge bg-${statusClassForDisplay}">${statusTextForDisplay}</span></p>
+        ${data.booking.processed_at ? `<p><strong>Processed at:</strong> ${data.booking.processed_at}</p>` : (data.success ? `<p><strong>Processed at:</strong> ${new Date().toLocaleString()}</p>` : '')}
+      `;
+    }
+
+    resultContent.innerHTML = `
+      <div class="alert alert-${alertClass}">
+        <h6>${icon} ${data.message}</h6>
+        ${bookingDetailsHtml}
+        ${data.trace ? `<pre style='max-width:100%;overflow:auto;'>${data.trace}</pre>` : ''}
+      </div>
+    `;
+    
+    // Show modal
+    const modalElement = document.getElementById('resultModal');
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+    
+     // Automatically close modal after 2.5 seconds for both success and error messages
+     setTimeout(() => {
+       modal.hide(); // Hide the modal
+       // Scanner continues running automatically - no need to restart
+     }, 2500); // 2.5 seconds
+    
+    // Clear manual input (though this function is also used by camera scan)
+    document.getElementById('manual_qr').value = '';
+    
+     // Reset processing flag after a delay to allow for proper display
+     setTimeout(() => {
+       isProcessingQR = false;
+     }, 3000); // Reset after 3 seconds (2.5 seconds display + 0.5 second buffer)
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    const resultContent = document.getElementById('resultContent');
+    
+    let errorMessage = error.message || 'Unknown error';
+    let troubleshooting = '';
+    
+    if (errorMessage.includes('CSRF')) {
+      troubleshooting = '<p><strong>Solution:</strong> Please refresh the page and try again.</p>';
+    } else if (errorMessage.includes('HTTP error')) {
+      troubleshooting = '<p><strong>Solution:</strong> Server error. Please check if the application is running properly.</p>';
+    } else {
+      troubleshooting = '<p><strong>Solution:</strong> Please check the QR data format and try again.</p>';
+    }
+    
+    resultContent.innerHTML = `
+      <div class="alert alert-danger">
+        <h6>❌ Error processing QR code</h6>
+        <p>Error details: ${errorMessage}</p>
+        ${troubleshooting}
+        <p><small>If this error persists, try refreshing the page and try again.</small></p>
+      </div>
+    `;
+    
+    const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+    modal.show();
+    
+     // Reset processing flag on error
+     setTimeout(() => {
+       isProcessingQR = false;
+     }, 3000);
+  });
+}
+
+// File input QR scan logic
+const fileInput = document.getElementById('qr-input-file');
+fileInput.addEventListener('change', function(e) {
+  if (e.target.files.length === 0) return;
+  const imageFile = e.target.files[0];
+  if (!html5QrCodeFile) {
+    html5QrCodeFile = new Html5Qrcode('reader');
+  }
+  // Stop camera scanner if running
+  if (html5QrcodeScanner && html5QrcodeScanner.getState && html5QrcodeScanner.getState() === 2) {
+    html5QrcodeScanner.clear();
+    document.getElementById('startScan').style.display = 'inline-block';
+    document.getElementById('stopScan').style.display = 'none';
+  }
+  html5QrCodeFile.scanFile(imageFile, true)
+    .then(decodedText => {
+      // Try to parse as JSON or comma-separated
+      let parsed = null;
+      try {
+        parsed = JSON.parse(decodedText);
+      } catch (e) {
+        const parts = decodedText.split(',');
+        if (parts.length === 4) {
+          parsed = {
+            booking_id: parts[0],
+            employee_id: parts[1],
+            date: parts[2],
+            shift: parts[3]
+          };
+        }
+      }
+      const resultContent = document.getElementById('resultContent');
+      if (parsed) {
+        // Instead of just showing the data, process it for booking consumption
+        processQRCode(decodedText);
+      } else {
+        resultContent.innerHTML = `
+          <div class="alert alert-danger">
+            <h6>❌ Invalid QR code format</h6>
+            <p>The QR code does not contain valid booking data.</p>
+          </div>
+        `;
+        const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+        modal.show();
+      }
+    })
+    .catch(err => {
+      const resultContent = document.getElementById('resultContent');
+      resultContent.innerHTML = `
+        <div class="alert alert-danger">
+          <h6>❌ Error processing QR code</h6>
+          <p>${err ? err : 'Please try again.'}</p>
+        </div>
+      `;
+      const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+      modal.show();
+    });
+  // Clear file input for next use
+  fileInput.value = '';
+});
+
+// Test database connection
+// document.getElementById('testDb').addEventListener('click', function() {
+//   fetch('/staff/test_db', {
+//     headers: {
+//       'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+//     }
+//   })
+//     .then(response => response.json())
+//     .then(data => {
+//       const resultContent = document.getElementById('resultContent');
+//       if (data.success) {
+//         resultContent.innerHTML = `
+//           <div class="alert alert-success">
+//             <h6>✅ Database Connection Test Successful</h6>
+//             <hr>
+//             <p><strong>Connection:</strong> ${data.connection}</p>
+//             <p><strong>Tables:</strong> ${data.tables.join(', ')}</p>
+//             <p><strong>Booking Columns:</strong> ${data.booking_columns.join(', ')}</p>
+//             <p><strong>Employee Count:</strong> ${data.employee_count}</p>
+//             <p><strong>Locations:</strong> ${data.locations.join(', ')}</p>
+//           </div>
+//         `;
+//       } else {
+//         resultContent.innerHTML = `
+//           <div class="alert alert-danger">
+//             <h6>❌ Database Connection Test Failed</h6>
+//             <p>Error: ${data.error}</p>
+//           </div>
+//         `;
+//       }
+//       const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+//       modal.show();
+//     })
+//     .catch(error => {
+//       const resultContent = document.getElementById('resultContent');
+//       resultContent.innerHTML = `
+//         <div class="alert alert-danger">
+//           <h6>❌ Database Test Error</h6>
+//           <p>Error: ${error.message}</p>
+//         </div>
+//       `;
+//       const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+//       modal.show();
+//     });
+// });
+
+// Simple test
+// document.getElementById('simpleTest').addEventListener('click', function() {
+//   fetch('/staff/simple_test', {
+//     headers: {
+//       'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+//     }
+//   })
+//     .then(response => response.json())
+//     .then(data => {
+//       const resultContent = document.getElementById('resultContent');
+//       if (data.success) {
+//         resultContent.innerHTML = `
+//           <div class="alert alert-success">
+//             <h6>✅ ${data.message}</h6>
+//             <p>Result: ${JSON.stringify(data.result)}</p>
+//           </div>
+//         `;
+//       } else {
+//         resultContent.innerHTML = `
+//           <div class="alert alert-danger">
+//             <h6>❌ Simple test failed</h6>
+//             <p>Error: ${data.error}</p>
+//           </div>
+//         `;
+//       }
+//       const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+//       modal.show();
+//     })
+//     .catch(error => {
+//       const resultContent = document.getElementById('resultContent');
+//       resultContent.innerHTML = `
+//         <div class="alert alert-danger">
+//           <h6>❌ Simple test error</h6>
+//           <p>Error: ${error.message}</p>
+//         </div>
+//       `;
+//       const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+//       modal.show();
+//     });
+// });
+
+// Create test booking
+// document.getElementById('createTestBooking').addEventListener('click', function() {
+//   fetch('/staff/create_test_booking', {
+//     headers: {
+//       'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+//     }
+//   })
+//     .then(response => response.json())
+//     .then(data => {
+//       const resultContent = document.getElementById('resultContent');
+//       if (data.success) {
+//         resultContent.innerHTML = `
+//           <div class="alert alert-success">
+//             <h6>✅ ${data.message}</h6>
+//             <hr>
+//             <p><strong>Employee:</strong> ${data.booking.employee_name}</p>
+//             <p><strong>ID:</strong> ${data.booking.employee_id}</p>
+//             <p><strong>Unit:</strong> ${data.booking.unit}</p>
+//             <p><strong>Date:</strong> ${data.booking.date}</p>
+//             <p><strong>Shift:</strong> ${data.booking.shift}</p>
+//             <p><strong>Status:</strong> <span class="badge bg-primary">${data.booking.status}</span></p>
+//             <hr>
+//             <p><strong>Test QR Data:</strong></p>
+//             <code>${data.booking.employee_name},${data.booking.employee_id},${data.booking.unit},${data.booking.date},${data.booking.shift}</code>
+//           </div>
+//         `;
+//       } else {
+//         resultContent.innerHTML = `
+//           <div class="alert alert-danger">
+//             <h6>❌ Failed to create test booking</h6>
+//             <p>Error: ${data.error}</p>
+//           </div>
+//         `;
+//       }
+//       const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+//       modal.show();
+//     })
+//     .catch(error => {
+//       const resultContent = document.getElementById('resultContent');
+//       resultContent.innerHTML = `
+//         <div class="alert alert-danger">
+//           <h6>❌ Error creating test booking</h6>
+//           <p>Error: ${error.message}</p>
+//         </div>
+//       `;
+//       const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+//       modal.show();
+//     });
+// });
+</script>
+{% endblock %}

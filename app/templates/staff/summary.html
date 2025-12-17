@@ -1,0 +1,251 @@
+{% extends 'base_logged_in.html' %}
+{% block title %}Monthly Summary{% endblock %}
+{% block main_content %}
+{% set rows_per_page = 10 %}
+{% set page = request.args.get('page', 1)|int %}
+{% set start_index = (page - 1) * rows_per_page %}
+{% set end_index = start_index + rows_per_page %}
+{% set paginated_data = summary_data[start_index:end_index] if summary_data else [] %}
+{% set total_pages = (summary_data|length / rows_per_page)|round(0, 'ceil')|int if summary_data else 1 %}
+
+<style>
+  .back-btn {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 1000;
+    background: #6c757d;
+    border: none;
+    color: #fff;
+    font-size: 1.2rem;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .back-btn:hover {
+    background: #5a6268;
+    transform: scale(1.08);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  }
+  .summary-card {
+    font-size: 1.1rem;
+    max-width: 900px;
+    margin: 0 auto;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    border-radius: 1rem;
+  }
+  .summary-card .card-header {
+    font-size: 1.8rem;
+    font-weight: 700;
+    padding: 1.5rem 1.5rem 0.8rem 1.5rem;
+    background: linear-gradient(90deg, #1976d2 0%, #64b5f6 100%);
+    color: #fff;
+    border-radius: 1rem 1rem 0 0;
+    text-align: center;
+  }
+  .summary-card .card-body {
+    padding: 1.8rem 1.8rem 1.5rem 1.8rem;
+  }
+  .summary-card table {
+    font-size: 1em;
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+  .summary-card th, .summary-card td {
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
+    text-align: center;
+  }
+  .summary-card th {
+    background: #e3f2fd;
+    color: #1976d2;
+    font-size: 1.05em;
+    font-weight: 600;
+  }
+  .summary-card td {
+    background: #fff;
+    color: #333;
+  }
+  .summary-card .btn {
+    font-size: 1em;
+    padding: 0.4rem 1.5rem;
+    border-radius: 0.5rem;
+    margin-right: 0.8rem;
+    margin-bottom: 0.4rem;
+  }
+  
+  /* Pagination Styles */
+  .pagination {
+    margin-bottom: 0;
+  }
+  
+  .page-link {
+    color: #1976d2;
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+  }
+  
+  .page-link:hover {
+    color: #fff;
+    background-color: #1976d2;
+    border-color: #1976d2;
+  }
+  
+  .page-item.active .page-link {
+    background-color: #1976d2;
+    border-color: #1976d2;
+  }
+  
+  .page-item.disabled .page-link {
+    color: #6c757d;
+    background-color: #fff;
+    border-color: #dee2e6;
+  }
+  /* Responsive styles omitted for brevity, copy from summary.html if needed */
+  @media print {
+    body * {
+      visibility: hidden !important;
+    }
+    #printable-report, #printable-report * {
+      visibility: visible !important;
+    }
+    #printable-report {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100vw;
+      background: white;
+      box-shadow: none;
+    }
+    .back-btn {
+      display: none !important;
+    }
+    .btn {
+      display: none !important;
+    }
+    nav {
+      display: none !important;
+    }
+    .sidebar {
+      display: none !important;
+    }
+  }
+</style>
+<button class="back-btn" id="backBtn" data-href="{{ url_for('staff.dashboard') }}" title="Back to Dashboard">
+  <i class="bi bi-arrow-left"></i>
+</button>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const backBtn = document.getElementById('backBtn');
+    if (backBtn) {
+        backBtn.addEventListener('click', function() {
+            window.location.href = this.getAttribute('data-href');
+        });
+    }
+});
+</script>
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-12">
+      <div class="card summary-card" id="printable-report">
+        <div class="card-header text-center">
+          🗓️ Daily Summary Report
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Shift</th>
+                  <th>Location</th>
+                  <th>Consumed</th>
+                  <th>Booked</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if paginated_data %}
+                  {% for row in paginated_data %}
+                  <tr>
+                    <td>{{ row.shift }}</td>
+                    <td>{{ row.location }}</td>
+                    <td>{{ row.consumed }}</td>
+                    <td>{{ row.booked }}</td>
+                  </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="4" class="text-center text-muted">No data available.</td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- Pagination Info -->
+          {% if summary_data and summary_data|length > rows_per_page %}
+          <div class="d-flex justify-content-between align-items-center mt-3">
+            <small class="text-muted">
+              Showing {{ start_index + 1 }} to {{ [start_index + rows_per_page, summary_data|length]|min }} of {{ summary_data|length }} entries
+            </small>
+          </div>
+          
+          <!-- Pagination Controls -->
+          <nav aria-label="Page navigation" class="mt-2">
+            <ul class="pagination justify-content-center">
+              <!-- Previous Button -->
+              {% if page > 1 %}
+              <li class="page-item">
+                <a class="page-link" href="{{ url_for('staff.summary', page=page-1) }}" aria-label="Previous">
+                  <span aria-hidden="true">&laquo;</span>
+                </a>
+              </li>
+              {% else %}
+              <li class="page-item disabled">
+                <span class="page-link" aria-hidden="true">&laquo;</span>
+              </li>
+              {% endif %}
+              
+              <!-- Page Numbers -->
+              {% for p in range(1, total_pages + 1) %}
+                {% if p == page %}
+                <li class="page-item active" aria-current="page">
+                  <span class="page-link">{{ p }}</span>
+                </li>
+                {% elif p > page - 3 and p < page + 3 %} <!-- Show nearby pages -->
+                <li class="page-item">
+                  <a class="page-link" href="{{ url_for('staff.summary', page=p) }}">{{ p }}</a>
+                </li>
+                {% endif %}
+              {% endfor %}
+              
+              <!-- Next Button -->
+              {% if page < total_pages %}
+              <li class="page-item">
+                <a class="page-link" href="{{ url_for('staff.summary', page=page+1) }}" aria-label="Next">
+                  <span aria-hidden="true">&raquo;</span>
+                </a>
+              </li>
+              {% else %}
+              <li class="page-item disabled">
+                <span class="page-link" aria-hidden="true">&raquo;</span>
+              </li>
+              {% endif %}
+            </ul>
+          </nav>
+          {% endif %}
+          <div class="mt-4 text-end">
+            <a href="{{ url_for('staff.export_monthly_summary_csv') }}" class="btn btn-outline-primary">Export</a>
+            <button class="btn btn-outline-secondary" onclick="window.print()">Print</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Bootstrap Icons CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+{% endblock %} 

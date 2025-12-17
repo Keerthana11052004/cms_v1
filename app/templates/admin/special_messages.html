@@ -1,0 +1,47 @@
+{% extends 'base_logged_in.html' %}
+
+{% block title %}Manage Special Messages{% endblock %}
+
+{% block main_content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg rounded-3">
+                <div class="card-header bg-primary text-white text-center py-3 rounded-top-3">
+                    <h2 class="mb-0">Manage Special Meals Message</h2>
+                </div>
+                <div class="card-body p-4">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <form method="POST" action="{{ url_for('admin.special_messages') }}">
+                        <div class="mb-3">
+                            <label for="message_text" class="form-label">Special Meal Message:</label>
+                            <textarea class="form-control" id="message_text" name="message_text" rows="5" placeholder="Enter message for special meals...">{{ message }}</textarea>
+                            <div class="form-text">This message will be displayed on all login and dashboard screens. Leave empty to deactivate.</div>
+                        </div>
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" id="is_active" name="is_active" {% if is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="is_active">
+                                Activate Message
+                            </label>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">Update Message</button>
+                            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary btn-lg">Back to Dashboard</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

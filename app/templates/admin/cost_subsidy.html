@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+{% block title %}Cost & Subsidy Analysis{% endblock %}
+{% block content %}
+<style>
+  .back-btn {
+    position: fixed;
+    top: 24px;
+    left: 24px;
+    z-index: 1000;
+    background: #6c757d;
+    border: none;
+    color: #fff;
+    font-size: 1.2rem;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .back-btn:hover {
+    background: #5a6268;
+    transform: scale(1.08);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  }
+  .cost-subsidy-card {
+    font-size: 1.1rem;
+    max-width: 900px;
+    margin: 0 auto;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    border-radius: 1rem;
+  }
+  .cost-subsidy-card .card-header {
+    font-size: 1.8rem;
+    font-weight: 700;
+    padding: 1.5rem 1.5rem 0.8rem 1.5rem;
+    background: linear-gradient(90deg, #1976d2 0%, #64b5f6 100%);
+    color: #fff;
+    border-radius: 1rem 1rem 0 0;
+    text-align: center;
+  }
+  .cost-subsidy-card .card-body {
+    padding: 1.8rem 1.8rem 1.5rem 1.8rem;
+  }
+  .cost-subsidy-card table {
+    font-size: 1em;
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+  .cost-subsidy-card th, .cost-subsidy-card td {
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
+    text-align: center;
+  }
+  .cost-subsidy-card th {
+    background: #e3f2fd;
+    color: #1976d2;
+    font-size: 1.05em;
+    font-weight: 600;
+  }
+  .cost-subsidy-card td {
+    background: #fff;
+    color: #333;
+  }
+  
+  /* Pagination styles */
+  .pagination {
+    margin: 0;
+  }
+  
+  .pagination .page-item .page-link {
+    color: #1976d2;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  
+  .pagination .page-item.active .page-link {
+    background-color: #1976d2;
+    border-color: #1976d2;
+  }
+</style>
+<a href="{{ url_for('admin.dashboard') }}"
+   class="back-btn"
+   title="Back to Dashboard">
+    <i class="bi bi-arrow-left"></i>
+</a>
+
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-12">
+      <div class="card cost-subsidy-card">
+        <div class="card-header text-center">
+          💰 Cost & Subsidy Analysis
+        </div>
+        <div class="card-body">
+          <form class="row g-3 mb-4" method="get" action="{{ url_for('admin.cost_subsidy') }}">
+            <div class="col-md-3">
+              <input type="text" class="form-control" name="employee" placeholder="Filter by Employee Name" value="{{ request.args.get('employee', '') }}">
+            </div>
+            <div class="col-md-3">
+              <select class="form-control" name="department">
+                <option value="">All Departments</option>
+                {% for dept in departments %}
+                <option value="{{ dept.name }}" {% if request.args.get('department') == dept.name %}selected{% endif %}>{{ dept.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-2">
+              <select class="form-control" name="unit">
+                <option value="">All Locations</option>
+                {% for unit in units %}
+                <option value="{{ unit.name }}" {% if request.args.get('unit') == unit.name %}selected{% endif %}>{{ unit.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-2">
+              <select class="form-control" name="month">
+                <option value="">All Months</option>
+                {% for month in available_months %}
+                <option value="{{ month }}" {% if selected_month == month %}selected{% endif %}>{{ month }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-center">
+              <button type="submit" class="btn btn-primary me-2"><i class="bi bi-funnel"></i> Filter</button>
+              <a href="{{ url_for('admin.cost_subsidy') }}" class="btn btn-secondary me-2"><i class="bi bi-x-circle"></i> Clear</a>
+              <a id="export-link" class="btn btn-success"><i class="bi bi-download"></i> Export</a>
+            </div>
+          </form>
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Employee</th>
+                  <th>Department</th>
+                  <th>Location</th>
+                  <th>Meals Booked</th>
+                  <th>Meals Consumed</th>
+                  <th>Total Cost (Booked)</th>
+                  <th>Total Cost (Consumed)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in cost_subsidy_data %}
+                <tr>
+                  <td>{{ row.employee }}</td>
+                  <td>{{ row.department }}</td>
+                  <td>{{ row.unit }}</td>
+                  <td>{{ row.meals_booked }}</td>
+                  <td>{{ row.meals_consumed }}</td>
+                  <td>₹{{ row.total_cost_booked }}</td>
+                  <td>₹{{ row.total_cost_consumed }}</td>
+                </tr>
+                {% endfor %}
+                {% if cost_subsidy_data|length == 0 %}
+                <tr>
+                  <td colspan="7" class="text-center text-muted">No data available for the selected month.</td>
+                </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- Pagination -->
+          {% if pagination and pagination.pages > 1 %}
+          <div class="d-flex justify-content-center mt-4">
+            <nav aria-label="Page navigation">
+              <ul class="pagination">
+                {% if pagination.has_prev %}
+                <li class="page-item">
+                  <a class="page-link" href="{{ url_for('admin.cost_subsidy', page=pagination.prev_num, employee=request.args.get('employee', ''), department=request.args.get('department', ''), unit=request.args.get('unit', ''), month=request.args.get('month', '')) }}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                  </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                  <span class="page-link" aria-hidden="true">&laquo;</span>
+                </li>
+                {% endif %}
+                
+                {% for page_num in range(1, pagination.pages + 1) %}
+                  {% if page_num == pagination.page %}
+                  <li class="page-item active">
+                    <span class="page-link">{{ page_num }}</span>
+                  </li>
+                  {% elif page_num > pagination.page - 3 and page_num < pagination.page + 3 %}
+                  <li class="page-item">
+                    <a class="page-link" href="{{ url_for('admin.cost_subsidy', page=page_num, employee=request.args.get('employee', ''), department=request.args.get('department', ''), unit=request.args.get('unit', ''), month=request.args.get('month', '')) }}">{{ page_num }}</a>
+                  </li>
+                  {% endif %}
+                {% endfor %}
+                
+                {% if pagination.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="{{ url_for('admin.cost_subsidy', page=pagination.next_num, employee=request.args.get('employee', ''), department=request.args.get('department', ''), unit=request.args.get('unit', ''), month=request.args.get('month', '')) }}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                  </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                  <span class="page-link" aria-hidden="true">&raquo;</span>
+                </li>
+                {% endif %}
+              </ul>
+            </nav>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Bootstrap Icons CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<script>
+document.getElementById('export-link').onclick = function(e) {
+    const employeeFilter = document.querySelector('input[name="employee"]').value;
+    const departmentFilter = document.querySelector('select[name="department"]').value;
+    const unitFilter = document.querySelector('select[name="unit"]').value;
+    let url = "/cms/admin/export_cost_subsidy?";
+    const params = [];
+    if (employeeFilter) params.push("employee=" + encodeURIComponent(employeeFilter));
+    if (departmentFilter) params.push("department=" + encodeURIComponent(departmentFilter));
+    if (unitFilter) params.push("unit=" + encodeURIComponent(unitFilter));
+    url += params.join("&");
+    this.href = url;
+    // Let the browser handle the download
+};
+</script>
+{% endblock %}

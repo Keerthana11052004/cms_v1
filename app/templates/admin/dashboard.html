@@ -1,0 +1,418 @@
+{% extends 'base_logged_in.html' %}
+{% block title %}
+{% if current_user.role == 'Accounts' %}Dashboard{% elif current_user.role == 'Admin' and current_user.employee_id == 'a001' %}Admin Dashboard{% elif current_user.role == 'Admin' and current_user.location %}Admin Dashboard ({{ current_user.location }}){% else %}Admin Dashboard{% endif %}
+{% endblock %}
+{% block main_content %}
+<style>
+  .back-btn {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 1000;
+    background: #6c757d;
+    border: none;
+    color: #fff;
+    font-size: 1.2rem;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .back-btn:hover {
+    background: #5a6268;
+    transform: scale(1.08);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  }
+  .dashboard-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-radius: 10px;
+    border: none;
+    min-height: 120px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+  }
+  .dashboard-card:hover {
+    transform: translateY(-4px) scale(1.03);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+  }
+  .dashboard-card .card-body {
+    padding: 1.25rem 1rem;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  .dashboard-card .card-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+  .dashboard-card .card-text {
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin-bottom: 0;
+  }
+  .action-btn {
+    padding: 1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60px;
+  }
+  .action-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .trends-table {
+    font-size: 0.85rem;
+  }
+  .trends-table td {
+    padding: 0.25rem 0.5rem;
+  }
+  .dashboard-card.trends-grey {
+    background-color: #f4f4f4 !important;
+    color: #222 !important;
+    border: 1px solid #e0e0e0;
+  }
+
+  /* Mobile Responsiveness */
+  @media (max-width: 1199.98px) {
+    .dashboard-card .card-body {
+      padding: 1rem 0.85rem;
+    }
+    .dashboard-card .card-title {
+      font-size: 1rem;
+    }
+    .dashboard-card .card-text {
+      font-size: 1.5rem;
+    }
+    .action-btn {
+      padding: 0.65rem;
+      font-size: 0.75rem;
+      min-height: 45px;
+    }
+  }
+
+  @media (max-width: 991.98px) {
+    .dashboard-card .card-body {
+      padding: 0.85rem 0.65rem;
+    }
+    .dashboard-card .card-title {
+      font-size: 0.9rem;
+    }
+    .dashboard-card .card-text {
+      font-size: 1.25rem;
+    }
+    .action-btn {
+      padding: 0.55rem;
+      font-size: 0.7rem;
+      min-height: 40px;
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .container {
+      padding: 0 0.15rem;
+    }
+    .dashboard-card .card-body {
+      padding: 0.85rem 0.5rem;
+    }
+    .dashboard-card .card-title {
+      font-size: 0.8rem;
+    }
+    .dashboard-card .card-text {
+      font-size: 0.9rem;
+    }
+    .action-btn {
+      padding: 0.5rem;
+      font-size: 0.65rem;
+      min-height: 35px;
+    }
+    .trends-table {
+      font-size: 0.7rem;
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    .dashboard-card .card-body {
+      padding: 0.65rem 0.3rem;
+      min-width: 0;
+    }
+    .dashboard-card .card-title {
+      font-size: 0.75rem;
+    }
+    .dashboard-card .card-text {
+      font-size: 0.8rem;
+    }
+    .action-btn {
+      padding: 0.4rem;
+      font-size: 0.6rem;
+      min-height: 30px;
+    }
+    .trends-table {
+      font-size: 0.65rem;
+    }
+    .trends-table td {
+      padding: 0.1rem 0.25rem;
+    }
+    #trendsBarChart {
+      max-width: 100%;
+      height: auto !important;
+    }
+  }
+</style>
+
+<button class="back-btn" id="logoutBtn" title="{{ _('Logout') }}">
+  <i class="bi bi-box-arrow-right"></i>
+</button>
+<div class="container" style="max-width: 1100px;">
+  <h2 class="mb-2 fw-bold" style="text-align:left;">
+    {% if current_user.role == 'Accounts' %}📊 Dashboard{% elif current_user.role == 'Admin' and current_user.employee_id == 'a001' %} 📊 Admin Dashboard{% elif current_user.role == 'Admin' and current_user.location %} 📊 Admin Dashboard ({{ current_user.location }}){% else %} 📊 Admin Dashboard{% endif %}
+  </h2>
+  {% if current_user.role == 'Admin' %}
+  <div class="card my-4">
+    <div class="card-body">
+      <h5 class="card-title">Post a Special Message</h5>
+      <form action="{{ url_for('admin.special_messages') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="mb-3">
+          <textarea class="form-control" id="message_text" name="message_text" rows="3" placeholder="Enter your message here..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Post Message</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+  <div class="row my-4 align-items-stretch">
+    <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12 mb-3">
+      <div class="card text-bg-primary dashboard-card h-100">
+        <div class="card-body h-100 d-flex flex-column justify-content-center align-items-center">
+          <h5 class="card-title">🧾 {{ month_label }} Total Bookings</h5>
+          <p class="card-text">{{ total_bookings }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12 mb-3">
+      <div class="card text-bg-success dashboard-card h-100">
+        <div class="card-body h-100 d-flex flex-column justify-content-center align-items-center">
+          <h5 class="card-title">🍽️ {{ month_label }} Consumed Meals</h5>
+          <p class="card-text">{{ consumed_meals }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12 mb-3">
+      <div class="card text-bg-info dashboard-card h-100">
+        <div class="card-body h-100 d-flex flex-column justify-content-center align-items-center">
+          <h5 class="card-title">📅 Booked Meals Monthwise</h5>
+          <table class="table table-borderless mb-0 text-center">
+            <thead>
+              <tr>
+                <th class="text-start"></th>
+                <th>Booked</th>
+                <th>Consumed</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th class="text-start">Breakfast</th>
+                <td id="booked-breakfast">{{ booked_breakfast }}</td>
+                <td id="consumed-breakfast">{{ consumed_breakfast }}</td>
+              </tr>
+              <tr>
+                <th class="text-start">Lunch</th>
+                <td id="booked-lunch">{{ booked_lunch }}</td>
+                <td id="consumed-lunch">{{ consumed_lunch }}</td>
+              </tr>
+              <tr>
+                <th class="text-start">Dinner</th>
+                <td id="booked-dinner">{{ booked_dinner }}</td>
+                <td id="consumed-dinner">{{ consumed_dinner }}</td>
+              </tr>
+              <tr class="fw-bold">
+                <th class="text-start">Total</th>
+                <td id="total-booked">{{ total_booked_meals_monthwise }}</td>
+                <td id="total-consumed">{{ total_consumed_meals_monthwise }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 mb-3">
+      <div class="card dashboard-card trends-grey">
+        <div class="card-body position-relative"> {# Added position-relative here #}
+          <h5 class="card-title">📈 Trends (Last 7 Days)</h5>
+          <canvas id="trendsBarChart" width="1100" height="500"></canvas>
+          <div class="position-absolute top-0 end-0 p-3" style="z-index: 10;">
+            {% if current_user.employee_id == 'a001' %}
+            <a href="{{ url_for('admin.monthly_all_units_report') }}" class="btn btn-sm btn-primary">
+              <i class="bi bi-file-earmark-bar-graph me-1"></i> Monthly Report (All Units)
+            </a>
+            <a href="{{ url_for('admin.daily_unit_report') }}" class="btn btn-sm btn-info ms-2">
+              <i class="bi bi-file-earmark-text me-1"></i> Daily Report (All Units)
+            </a>
+            {% elif current_user.role == 'Admin' and current_user.location %}
+            <a href="{{ url_for('admin.monthly_unit_report') }}" class="btn btn-sm btn-primary">
+              <i class="bi bi-file-earmark-bar-graph me-1"></i> Monthly Report (Unit)
+            </a>
+            <a href="{{ url_for('admin.daily_unit_report') }}" class="btn btn-sm btn-info ms-2">
+              <i class="bi bi-file-earmark-text me-1"></i> Daily Report (Unit)
+            </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* The .monthly-report-btn class is no longer needed as we are using Bootstrap utilities */
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var ctx = document.getElementById('trendsBarChart').getContext('2d');
+    var trends = JSON.parse('{{ trends|tojson|safe }}');
+    var labels = trends.map(function(t) { return t.booking_date; });
+    var data = trends.map(function(t) { return t.count; });
+    // Use a solid deep blue color for the bars
+    var solidBlue = 'rgba(25, 82, 186, 0.95)';
+    // Plugin to set chart background to white
+    const chartAreaBg = {
+      id: 'custom_canvas_background_color',
+      beforeDraw: (chart) => {
+        const ctx = chart.canvas.getContext('2d');
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.fillStyle = '#fff'; // white background
+        ctx.fillRect(0, 0, chart.width, chart.height);
+        ctx.restore();
+      }
+    };
+    Chart.register(window.ChartDataLabels);
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Bookings',
+          data: data,
+          backgroundColor: solidBlue,
+          borderColor: 'rgba(13, 71, 161, 1)',
+          borderWidth: 2,
+          maxBarThickness: 50,
+          minBarLength: 2,
+          borderRadius: 12, // Rounded corners
+          hoverBackgroundColor: 'rgba(21, 101, 192, 1)',
+          hoverBorderColor: 'rgba(21, 101, 192, 1)',
+          datalabels: {
+            anchor: 'end',
+            align: 'end',
+            color: '#222',
+            font: { weight: 'bold', size: 14 },
+            formatter: function(value) { return value; },
+            shadowBlur: 4,
+            shadowColor: 'rgba(0,0,0,0.15)'
+          }
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          title: { display: false },
+          datalabels: {
+            anchor: 'end',
+            align: 'end',
+            color: '#222',
+            font: { weight: 'bold', size: 14 },
+            formatter: function(value) { return value; },
+            shadowBlur: 4,
+            shadowColor: 'rgba(0,0,0,0.15)'
+          },
+          tooltip: {
+            enabled: true,
+            backgroundColor: 'rgba(33, 150, 243, 0.9)',
+            titleColor: '#fff',
+            bodyColor: '#fff',
+            borderColor: 'rgba(25, 118, 210, 1)',
+            borderWidth: 1,
+            callbacks: {
+              label: function(context) {
+                return ' ' + context.parsed.y + ' bookings';
+              },
+              title: function(context) {
+                return 'Date: ' + context[0].label;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            title: { display: true, text: 'Date' },
+            grid: { display: false },
+            ticks: {
+              color: '#1976d2',
+              font: { weight: 'bold' },
+              callback: function(value, index, ticks) {
+                // value is the label (date string in YYYY-MM-DD)
+                if (typeof value === 'string' && value.length === 10) {
+                  var parts = value.split('-');
+                  if (parts.length === 3) {
+                    return parts[2] + '/' + parts[1] + '/' + parts[0];
+                  }
+                }
+                return value;
+              }
+            }
+          },
+          y: { title: { display: true, text: 'Count' }, beginAtZero: true, ticks: { stepSize: 1, color: '#1976d2', font: { weight: 'bold' } }, grid: { color: 'rgba(33,150,243,0.08)' } }
+        },
+        layout: {
+          padding: { top: 20, right: 20, bottom: 10, left: 10 }
+        }
+      },
+      plugins: [chartAreaBg]
+    });
+
+  });
+
+  // Real-time update for Booked Meals (This function is no longer needed for the monthwise card)
+  function updateBookedMeals() {
+    // This function can be removed or repurposed if the real-time update is still desired for other elements
+    // For now, it's kept as is, but its effect on the monthwise card is replaced by the new chart.
+    fetch('/cms/admin/api/booked_meals_by_shift')
+      .then(response => response.json())
+      .then(data => {
+        // These elements are removed from the HTML, so this part will no longer update them.
+        // document.getElementById('booked-breakfast').textContent = data.Breakfast.booked;
+        // document.getElementById('consumed-breakfast').textContent = data.Breakfast.consumed;
+        // document.getElementById('booked-lunch').textContent = data.Lunch.booked;
+        // document.getElementById('consumed-lunch').textContent = data.Lunch.consumed;
+        // document.getElementById('booked-dinner').textContent = data.Dinner.booked;
+        // document.getElementById('consumed-dinner').textContent = data.Dinner.consumed;
+        // document.getElementById('total-booked').textContent = data.Total.booked;
+        // document.getElementById('total-consumed').textContent = data.Total.consumed;
+      });
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    // updateBookedMeals(); // No longer needed for the monthwise card
+    // setInterval(updateBookedMeals, 10000); // No longer needed for the monthwise card
+  });
+
+  var logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', function() {
+      window.location.href = "{{ url_for('admin.logout') }}";
+    });
+  }
+</script>
+{% endblock %}

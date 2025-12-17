@@ -1,0 +1,591 @@
+{% extends 'base.html' %}
+{% set current_lang = g.get('locale', session.get('lang', 'en')) %}
+{% block content %}
+<div class="sidebar-container">
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header text-center mb-3" style="color: #fff;"> <!-- Reduced margin -->
+        <img src="{{ url_for('static', filename='VT_Logo.png') }}" alt="VT Logo" style="max-width: 80px; max-height: 80px; margin-bottom: 0.25rem;"> <!-- Smaller logo -->
+        <div class="fs-6 fw-bold">Violin Technology</div> <!-- Smaller font size -->
+        <div class="fs-6 fw-bold">CMS</div> <!-- Smaller font size -->
+        <div class="text-muted small mt-1" style="color: #111 !important; font-size: 0.75rem;">Current User : {{ current_user.name }}</div> <!-- Smaller font size -->
+      </div>
+      <ul class="nav flex-column">
+        {% if current_user.role == 'Admin' %}
+          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.dashboard') }}"><span class="menu-icon"><i class="bi bi-speedometer2"></i></span><span class="menu-label">Dashboard</span></a></li>
+          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.employee_reports') }}"><span class="menu-icon"><i class="bi bi-people"></i></span><span class="menu-label">Employee Reports</span></a></li>
+          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.dept_location_reports') }}"><span class="menu-icon"><i class="bi bi-building"></i></span><span class="menu-label">Dept/Location Reports</span></a></li>
+          {% if current_user.role == 'Admin' and current_user.location and current_user.employee_id != 'a001' %}
+          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.add_vendor_item') }}"><span class="menu-icon"><i class="bi bi-plus-circle"></i></span><span class="menu-label">Add Vendor Item</span></a></li>
+          {% endif %}
+          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.vendor_report_unit_wise') }}"><span class="menu-icon"><i class="bi bi-truck"></i></span><span class="menu-label">Outsider Meal Report</span></a></li>
+          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.vendor_report') }}"><span class="menu-icon"><i class="bi bi-file-text"></i></span><span class="menu-label">Vendor Report</span></a></li>
+          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.export') }}"><span class="menu-icon"><i class="bi bi-file-earmark-arrow-down"></i></span><span class="menu-label">Export</span></a></li>
+          {% if current_user.employee_id == 'a001' %}
+          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.cost_subsidy') }}"><span class="menu-icon"><i class="bi bi-cash-coin"></i></span><span class="menu-label">Cost & Subsidy</span></a></li>
+          {% endif %}
+          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.profile') }}"><span class="menu-icon"><i class="bi bi-person"></i></span><span class="menu-label">Profile</span></a></li>
+          <li class="nav-item mt-1"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.logout') }}"><span class="menu-icon"><i class="bi bi-box-arrow-right"></i></span><span class="menu-label">{{ _('Logout') }}</span></a></li>
+        {% elif current_user.role == 'Accounts' or (current_user.role == 'Admin' and current_user.department and current_user.department|lower == 'finance') %}
+          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.dashboard') }}"><span class="menu-icon"><i class="bi bi-speedometer2"></i></span><span class="menu-label">Dashboard</span></a></li>
+          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.cost_subsidy') }}"><span class="menu-icon"><i class="bi bi-cash-coin"></i></span><span class="menu-label">Cost & Subsidy</span></a></li>
+          <li class="nav-item mt-1"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.logout') }}"><span class="menu-icon"><i class="bi bi-box-arrow-right"></i></span><span class="menu-label">{{ _('Logout') }}</span></a></li>
+        {% elif current_user.role == 'Employee' %}
+          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.dashboard') }}"><span class="menu-icon"><i class="bi bi-speedometer2"></i></span><span class="menu-label">Dashboard</span></a></li>
+          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.book_meal') }}"><span class="menu-icon"><i class="bi bi-calendar-plus"></i></span><span class="menu-label">Book Meal</span></a></li>
+          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.booking_history') }}"><span class="menu-icon"><i class="bi bi-journal-text"></i></span><span class="menu-label">My Bookings</span></a></li>
+          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.view_menu') }}"><span class="menu-icon"><i class="bi bi-card-list"></i></span><span class="menu-label">Today's Meal</span></a></li>
+          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.profile') }}"><span class="menu-icon"><i class="bi bi-person"></i></span><span class="menu-label">Profile</span></a></li>
+          <li class="nav-item mt-1"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.logout') }}"><span class="menu-icon"><i class="bi bi-box-arrow-right"></i></span><span class="menu-label">{{ _('Logout') }}</span></a></li>
+        {% elif current_user.role in ['Staff', 'Supervisor'] %}
+          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.dashboard') }}"><span class="menu-icon"><i class="bi bi-speedometer2"></i></span><span class="menu-label">Dashboard</span></a></li>
+          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.qr_scanner') }}"><span class="menu-icon"><i class="bi bi-upc-scan"></i></span><span class="menu-label">QR Scanner</span></a></li>
+          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.summary') }}"><span class="menu-icon"><i class="bi bi-clipboard-data"></i></span><span class="menu-label">Daily Summary</span></a></li>
+          {% if current_user.role == 'Supervisor' %}
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.manage_roles') }}"><span class="menu-icon"><i class="bi bi-person-gear"></i></span><span class="menu-label">Role Management</span></a></li>
+          {% endif %}
+          <li class="nav-item mt-1"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.logout') }}"><span class="menu-icon"><i class="bi bi-box-arrow-right"></i></span><span class="menu-label">{{ _('Logout') }}</span></a></li>
+        {% endif %}
+      </ul>
+      <div class="sidebar-menu-section mt-auto p-2"> <!-- Reduced padding -->
+        {% block sidebar_menu %}{% endblock %}
+      </div>
+    </div>
+</div>
+<div class="content-container" id="mainContent">
+    <button class="hamburger" id="sidebarToggle" aria-label="Toggle sidebar">
+      <i class="bi bi-list"></i>
+    </button>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="row justify-content-center">
+          <div class="col-12 col-md-10 col-lg-8">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'info' if category == 'message' else category }} alert-dismissible fade show w-100" role="alert" id="flash-message">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+    {% endwith %}
+    {% block main_content %}{% endblock %}
+</div>
+<style>
+  body {
+    overflow: hidden;
+    font-size: 0.875rem; /* Smaller base font size */
+  }
+  
+  /* Print styles for base template */
+  @media print {
+    .sidebar,
+    .main-content {
+      margin-left: 0 !important;
+    }
+    
+    .sidebar {
+      display: none !important;
+    }
+    
+    .main-content {
+      width: 100% !important;
+      padding: 0 !important;
+    }
+  }
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 220px; /* Reduced sidebar width for compact design */
+    background: #bbdefb;
+    border-right: 1px solid #1565c0;
+    z-index: 2000;
+    padding-top: 0.75rem; /* Reduced padding */
+    transition: width 0.3s cubic-bezier(.4,0,.2,1), transform 0.3s cubic-bezier(.4,0,.2,1);
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar.collapsed {
+    width: 50px; /* Reduced collapsed width */
+  }
+  .sidebar-header {
+    margin-bottom: 1.5rem; /* Reduced margin */
+    transition: opacity 0.3s;
+    white-space: nowrap;
+    color: #1976d2 !important;
+  }
+  .sidebar.collapsed .sidebar-header .fs-4,
+  .sidebar.collapsed .sidebar-header .text-muted {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .content-container {
+    margin-left: 220px; /* Adjusted for smaller sidebar */
+    padding: 1.5rem; /* Reduced padding */
+    transition: margin-left 0.3s cubic-bezier(.4,0,.2,1);
+    overflow-y: auto;
+    height: 100vh;
+  }
+  .sidebar.collapsed ~ .content-container {
+    margin-left: 50px; /* Adjusted for smaller collapsed sidebar */
+  }
+  .content-container.full {
+    margin-left: 50px; /* Adjusted for smaller collapsed sidebar */
+  }
+  .sidebar .nav {
+    flex-direction: column;
+    height: 100%;
+    display: flex;
+  }
+  .sidebar .nav-item {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+  }
+  .sidebar .nav-link {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    color: #1976d2 !important;
+    background: transparent;
+    border-radius: 0.375rem; /* Smaller border radius */
+    margin-bottom: 0.375rem; /* Reduced margin */
+    font-weight: 500;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    transition: background 0.2s, box-shadow 0.2s, color 0.2s, padding 0.3s;
+    padding: 0.5rem 0.75rem; /* Reduced padding */
+    font-size: 0.875rem; /* Smaller font size */
+  }
+  .sidebar .nav-link .menu-icon {
+    min-width: 24px; /* Reduced icon width */
+    text-align: center;
+    display: inline-block;
+    font-size: 1.1rem; /* Smaller icon size */
+  }
+  .sidebar .nav-link .menu-label {
+    margin-left: 10px; /* Reduced margin */
+    white-space: nowrap;
+    transition: opacity 0.3s, width 0.3s;
+    opacity: 1;
+    width: auto;
+    display: inline-block;
+    font-weight: 600; /* Slightly reduced font weight */
+  }
+  .sidebar.collapsed .nav-link .menu-label {
+    opacity: 0;
+    width: 0;
+    pointer-events: none;
+  }
+  .sidebar .nav-link.active, .sidebar .nav-link:focus, .sidebar .nav-link:hover {
+    background: #90caf9;
+    color: #1976d2 !important;
+    box-shadow: 0 4px 16px rgba(33,150,243,0.15); /* Reduced shadow */
+  }
+  .sidebar .nav-link.text-danger {
+    color: #fff !important;
+  }
+  .hamburger {
+    position: fixed;
+    top: 15px; /* Adjusted position */
+    left: 15px; /* Adjusted position */
+    z-index: 2100;
+    background: #1976d2;
+    border: none;
+    color: #fff;
+    font-size: 1.25rem; /* Smaller font size */
+    border-radius: 0.375rem;
+    padding: 0.2rem 0.4rem; /* Reduced padding */
+    display: none;
+  }
+  
+  .back-btn {
+    position: fixed;
+    top: 15px; /* Adjusted position */
+    right: 15px; /* Adjusted position */
+    z-index: 2100;
+    background: #6c757d;
+    border: none;
+    color: #fff;
+    font-size: 0.875rem !important; /* Smaller font size */
+    border-radius: 50%;
+    padding: 0.25rem 0.4rem !important; /* Reduced padding */
+    width: 28px !important; /* Smaller width */
+    height: 28px !important; /* Smaller height */
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15); /* Reduced shadow */
+  }
+  
+  .back-btn:hover {
+    background: #5a6268;
+    transform: translateX(-2px); /* Reduced transformation */
+    box-shadow: 0 3px 10px rgba(0,0,0,0.18); /* Reduced shadow */
+  }
+
+  /* Mobile Responsiveness */
+  @media (max-width: 1199.98px) {
+    .sidebar {
+      width: 200px; /* Adjusted width */
+    }
+    .content-container {
+      margin-left: 200px; /* Adjusted margin */
+      padding: 1.25rem; /* Reduced padding */
+    }
+    .sidebar.collapsed ~ .content-container {
+      margin-left: 40px; /* Adjusted margin */
+    }
+  }
+
+  @media (max-width: 991.98px) {
+    .sidebar {
+      position: fixed;
+      width: 220px; /* Adjusted width */
+      height: 100vh;
+      border-right: 1px solid #1565c0;
+      left: 0;
+      top: 0;
+      background: #1976d2;
+      transform: translateX(-100%);
+      z-index: 2000;
+    }
+    .sidebar.show {
+      transform: translateX(0);
+    }
+    .sidebar.collapsed {
+      width: 50px; /* Adjusted width */
+    }
+    .content-container {
+      margin-left: 0;
+      padding: 0.875rem; /* Reduced padding */
+    }
+    .content-container.full {
+      margin-left: 0;
+    }
+    .hamburger {
+      display: block;
+    }
+    body.sidebar-open {
+      overflow: hidden;
+    }
+    .sidebar-header .fs-4 {
+      font-size: 1rem !important; /* Adjusted font size */
+    }
+    .sidebar .nav-link {
+      padding: 0.5rem 0.7rem; /* Adjusted padding */
+      font-size: 0.8125rem; /* Smaller font size */
+    }
+    .sidebar .nav-link .menu-icon {
+      font-size: 1rem; /* Smaller icon size */
+    }
+    .hamburger {
+      font-size: 0.875rem !important; /* Smaller font size */
+      padding: 0.125rem 0.25rem !important; /* Reduced padding */
+      width: 24px !important; /* Smaller width */
+      height: 24px !important; /* Smaller height */
+    }
+    .back-btn {
+      font-size: 0.8125rem !important; /* Smaller font size */
+      padding: 0.15rem 0.3rem !important; /* Reduced padding */
+      width: 24px !important; /* Smaller width */
+      height: 24px !important; /* Smaller height */
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .content-container {
+      padding: 0.625rem; /* Reduced padding */
+    }
+    .hamburger {
+      top: 10px; /* Adjusted position */
+      left: 10px; /* Adjusted position */
+      font-size: 0.8125rem !important; /* Smaller font size */
+      padding: 0.0625rem 0.125rem !important; /* Reduced padding */
+      width: 22px !important; /* Smaller width */
+      height: 22px !important; /* Smaller height */
+    }
+    .back-btn {
+      top: 10px; /* Adjusted position */
+      right: 10px; /* Adjusted position */
+      font-size: 0.75rem !important; /* Smaller font size */
+      padding: 0.125rem 0.25rem !important; /* Reduced padding */
+      width: 22px !important; /* Smaller width */
+      height: 22px !important; /* Smaller height */
+    }
+    .sidebar {
+      width: 200px; /* Adjusted width */
+    }
+    .sidebar-header {
+      margin-bottom: 1.25rem; /* Reduced margin */
+    }
+    .sidebar-header .fs-4 {
+      font-size: 0.9375rem !important; /* Smaller font size */
+    }
+    .sidebar .nav-link {
+      padding: 0.4rem 0.6rem; /* Reduced padding */
+      font-size: 0.75rem; /* Smaller font size */
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    .sidebar {
+      width: 100vw;
+      left: 0;
+      top: 0;
+      height: 100vh;
+      border-radius: 0;
+      padding-top: 0.375rem; /* Reduced padding */
+      min-width: 0;
+    }
+    .content-container {
+      margin-left: 0;
+      padding: 0.375rem; /* Reduced padding */
+      min-width: 0;
+    }
+    .sidebar-header .fs-4 {
+      font-size: 0.875rem !important; /* Smaller font size */
+    }
+    .sidebar-header img {
+      max-width: 50px; /* Smaller logo */
+      max-height: 50px; /* Smaller logo */
+    }
+    .sidebar .nav-link {
+      padding: 0.375rem 0.5rem; /* Reduced padding */
+      font-size: 0.75rem; /* Smaller font size */
+    }
+    .sidebar .nav-link .menu-icon {
+      font-size: 0.875rem; /* Smaller icon size */
+    }
+    .hamburger {
+      top: 6px; /* Adjusted position */
+      left: 6px; /* Adjusted position */
+      font-size: 0.75rem !important; /* Smaller font size */
+      padding: 0.0625rem 0.125rem !important; /* Reduced padding */
+      width: 20px !important; /* Smaller width */
+      height: 20px !important; /* Smaller height */
+    }
+    .back-btn {
+      font-size: 0.75rem !important; /* Smaller font size */
+      padding: 0.0625rem 0.125rem !important; /* Reduced padding */
+      width: 20px !important; /* Smaller width */
+      height: 20px !important; /* Smaller height */
+    }
+  }
+  
+  /* Pagination styles */
+  .pagination-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 15px; /* Reduced margin */
+  }
+  
+  .pagination {
+    margin: 0;
+  }
+  
+  .pagination .page-item .page-link {
+    color: #1976d2;
+    padding: 0.375rem 0.75rem; /* Smaller pagination buttons */
+    font-size: 0.8125rem;
+  }
+  
+  .pagination .page-item.active .page-link {
+    background-color: #1976d2;
+    border-color: #1976d2;
+  }
+  
+  /* Compact form elements */
+  .form-control, .form-select, .btn {
+    padding: 0.375rem 0.75rem; /* Smaller form elements */
+    font-size: 0.875rem;
+    height: calc(1.5em + 0.75rem + 2px);
+  }
+  
+  .form-label {
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  /* Compact card styles */
+  .card {
+    margin-bottom: 15px; /* Reduced margin */
+  }
+  
+  .card-header {
+    padding: 0.75rem 1rem; /* Reduced padding */
+    font-size: 1.1rem;
+  }
+  
+  .card-body {
+    padding: 1rem; /* Reduced padding */
+  }
+  
+  /* Compact table styles */
+  .table th, .table td {
+    padding: 0.5rem; /* Reduced padding */
+    font-size: 0.875rem;
+  }
+  
+  /* Alert styles */
+  .alert {
+    padding: 0.5rem 1rem; /* Reduced padding */
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+  }
+</style>
+<script>
+  const sidebar = document.getElementById('sidebar');
+  const sidebarToggle = document.getElementById('sidebarToggle');
+  const mainContent = document.getElementById('mainContent');
+  function toggleSidebar() {
+    if (window.innerWidth <= 991.98) {
+      sidebar.classList.toggle('show');
+      document.body.classList.toggle('sidebar-open');
+      mainContent.classList.toggle('full');
+    } else {
+      sidebar.classList.toggle('collapsed');
+      mainContent.classList.toggle('full');
+    }
+  }
+  sidebarToggle.addEventListener('click', toggleSidebar);
+  // Close sidebar when clicking outside on mobile
+  document.addEventListener('click', function(event) {
+    if (window.innerWidth <= 991.98 && sidebar.classList.contains('show')) {
+      if (!sidebar.contains(event.target) && !sidebarToggle.contains(event.target)) {
+        sidebar.classList.remove('show');
+        document.body.classList.remove('sidebar-open');
+        mainContent.classList.remove('full');
+      }
+    }
+  });
+  // Hide sidebar by default on mobile
+  window.addEventListener('DOMContentLoaded', function() {
+    if (window.innerWidth <= 991.98) {
+      sidebar.classList.remove('show');
+      mainContent.classList.add('full');
+    }
+  });
+  // Handle window resize
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 991.98) {
+      sidebar.classList.remove('show');
+      document.body.classList.remove('sidebar-open');
+    }
+  });
+  
+  // Auto-hide flash messages
+  document.addEventListener('DOMContentLoaded', function() {
+    var alert = document.getElementById('flash-message');
+    if (alert) {
+      setTimeout(function() {
+        var bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+        bsAlert.close();
+      }, 5000); // 5 seconds
+    }
+  });
+</script>
+<div id="js-data-container"
+    data-initial-selected-unit-id="{{ selected_unit_id | default('null') | tojson }}"
+
+    data-select-unit-url="{{ url_for('employee.select_unit') }}"
+    data-get-menu-for-location-url-base="{{ url_for('employee.get_menu_for_location', location_id=0) }}"
+    style="display: none;">
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const jsDataEl = document.getElementById('js-data-container');
+    if (!jsDataEl) return;
+
+    const initialSelectedUnitId = JSON.parse(jsDataEl.dataset.initialSelectedUnitId);
+    const selectUnitUrl = jsDataEl.dataset.selectUnitUrl;
+    const getMenuForLocationUrlBase = jsDataEl.dataset.getMenuForLocationUrlBase;
+
+    const unitSelect = document.getElementById('unitSelect');
+    const selectUnitBtn = document.getElementById('selectUnitBtn');
+    const todaysMenuContent = document.getElementById('todaysMenuContent');
+    const selectedUnitNameDisplay = document.getElementById('selectedUnitNameDisplay');
+    
+    const unitSelectionModalEl = document.getElementById('unitSelectionModal');
+    let unitSelectionModal;
+    if (unitSelectionModalEl) {
+        unitSelectionModal = new bootstrap.Modal(unitSelectionModalEl, {
+            backdrop: 'static',
+            keyboard: false
+        });
+    }
+
+    const modalUnitSelect = document.getElementById('modalUnitSelect');
+    const modalSelectUnitBtn = document.getElementById('modalSelectUnitBtn');
+
+    if (unitSelectionModal && (initialSelectedUnitId === null || typeof initialSelectedUnitId === 'undefined')) {
+        unitSelectionModal.show();
+    }
+
+    if (selectUnitBtn && unitSelect) {
+        selectUnitBtn.addEventListener('click', function() {
+            const selectedUnitId = unitSelect.value;
+            const selectedUnitName = unitSelect.options[unitSelect.selectedIndex].text;
+            updateUnitAndMenu(selectedUnitId, selectedUnitName);
+        });
+    }
+
+    if (modalSelectUnitBtn && modalUnitSelect) {
+        modalSelectUnitBtn.addEventListener('click', function() {
+            const selectedUnitId = modalUnitSelect.value;
+            const selectedUnitName = modalUnitSelect.options[modalUnitSelect.selectedIndex].text;
+            updateUnitAndMenu(selectedUnitId, selectedUnitName);
+            if (unitSelectionModal) {
+                unitSelectionModal.hide();
+            }
+        });
+    }
+
+    function updateUnitAndMenu(unitId, unitName) {
+        if (!selectUnitUrl || !getMenuForLocationUrlBase) return;
+
+        fetch(selectUnitUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'unit_id=' + unitId
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                if (selectedUnitNameDisplay) {
+                    selectedUnitNameDisplay.textContent = unitName;
+                }
+                fetch(getMenuForLocationUrlBase.replace('0', unitId))
+                    .then(response => response.json())
+                    .then(menuData => {
+                        let menuHtml = '';
+                        if (menuData.menu && menuData.menu.length > 0) {
+                            menuHtml = '<ul class="list-group list-group-flush">';
+                            menuData.menu.forEach(function(menu) {
+                                menuHtml += '<li class="list-group-item"><strong class="text-primary">' + menu.meal_type + ':</strong> ' + menu.items + '</li>';
+                            });
+                            menuHtml += '</ul>';
+                        } else {
+                            menuHtml = '<p class="card-text text-center text-muted">No menu available for the selected unit today.</p>';
+                        }
+                        if (todaysMenuContent) {
+                            todaysMenuContent.innerHTML = menuHtml;
+                        }
+                    })
+                    .catch(function(error) {
+                        console.error('Error fetching menu:', error);
+                        if (todaysMenuContent) {
+                            todaysMenuContent.innerHTML = '<p class="card-text text-center text-danger">Error loading menu.</p>';
+                        }
+                    });
+            } else {
+                console.error('Error saving unit selection:', data.message);
+                alert('Failed to save unit selection: ' + data.message);
+            }
+        })
+        .catch(function(error) {
+            console.error('Network error or unexpected response:', error);
+            alert('An unexpected error occurred while saving unit selection.');
+        });
+    }
+});
+</script>
+{% endblock %}
