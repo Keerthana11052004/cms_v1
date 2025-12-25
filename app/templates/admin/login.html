@@ -33,6 +33,13 @@
     <div class="row justify-content-center align-items-center" style="min-height: 80vh;">
         <div class="col-lg-6">
             <div class="row">
+                {% if special_message %}
+                <div class="col-12 mb-3 text-center">
+                    <div class="alert alert-info" role="alert" style="display: inline-block; width: 80%; max-width: 900px; text-align: center; font-size: 1.2rem; margin: 0 auto 15px auto;">
+                        {{ special_message.message_text }}
+                    </div>
+                </div>
+                {% endif %}
                 <!-- Branding -->
                 <div class="col-12 mb-4 text-center">
                     <div style="width:120px; height:120px; border-radius:50%; background:linear-gradient(135deg,#e3f0ff 0%,#f8fbff 100%); display:flex; align-items:center; justify-content:center; margin:0 auto 1rem auto; box-shadow:0 4px 20px rgba(0,0,0,0.10); border:2.5px solid #fff;">
@@ -43,11 +50,6 @@
                 <!-- Login Form -->
                 <div class="col-12">
                     <h2 class="mb-4 text-center">🛡️ Admin / Finance Login</h2>
-                    {% if special_message %}
-                    <div class="alert alert-info" role="alert" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; width: 80%; max-width: 900px; text-align: center; font-size: 1.2rem;">
-                        {{ special_message.message_text }}
-                    </div>
-                    {% endif %}
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <div class="mb-3">
