@@ -10,6 +10,7 @@ from datetime import datetime
 #import pymysql  # Import pymysql to access DictCursor
 #from . import Curr_Proj_Name, mysql, User
 from .db_config import get_db_connection
+from .biometric_integration import start_biometric_service
 
 # Explicitly add user site-packages path for stubborn module imports
 if platform.system() == "Windows":
@@ -131,6 +132,13 @@ def create_app():
     app.register_blueprint(employee_bp, url_prefix='/cms/employee')
     app.register_blueprint(staff_bp, url_prefix='/cms/staff')
     app.register_blueprint(admin_bp, url_prefix='/cms/admin')
+
+    # Start biometric service after app initialization
+    try:
+        start_biometric_service()
+        print("✅ Biometric service started successfully")
+    except Exception as e:
+        print(f"⚠️ Could not start biometric service: {e}")
 
     @app.errorhandler(404)
     def not_found_error(error):

@@ -135,6 +135,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
               </div>
             </div>
+            <div class="col-md-6 mb-4">
+              <div class="card h-100">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">Biometric Scan</h5>
+                </div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <label for="biometric_id" class="form-label">Biometric User ID</label>
+                    <input type="text" class="form-control" id="biometric_id" placeholder="Enter biometric user ID">
+                    <small class="form-text text-muted">Enter the user ID from the biometric device</small>
+                  </div>
+                  <button id="processBiometric" class="scanner-btn manual-btn w-100">Process Biometric Scan</button>
+                  <div class="mt-3">
+                    <button id="connectBiometric" class="scanner-btn w-100">Connect to Biometric Device</button>
+                  </div>
+                  <div class="mt-3">
+                    <button id="clearBiometricData" class="scanner-btn w-100" style="background: linear-gradient(90deg, #ff416c 0%, #ff4b2b 100%);">Clear All Punch Data</button>
+                  </div>
+                  <div class="mt-3">
+                    <button id="clearOldPunches" class="scanner-btn w-100" style="background: linear-gradient(90deg, #ff8c00 0%, #ff6600 100%);">Clear Old Punches (Keep Today)</button>
+                  </div>
+                  <div class="mt-3">
+                    <button id="syncBiometricUsers" class="scanner-btn w-100" style="background: linear-gradient(90deg, #4CAF50 0%, #45a049 100%);">Sync CMS Users to Device</button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -322,6 +349,212 @@ document.getElementById('processManual').addEventListener('click', function() {
   }
 });
 
+// Biometric scan functionality
+document.getElementById('processBiometric').addEventListener('click', function() {
+  const biometricId = document.getElementById('biometric_id').value.trim();
+  if (biometricId) {
+    processBiometricScan(biometricId);
+    document.getElementById('biometric_id').value = '';
+  } else {
+    alert('Please enter biometric user ID');
+  }
+});
+
+// Connect to biometric device
+document.getElementById('connectBiometric').addEventListener('click', function() {
+  // This would typically establish a connection to the biometric device
+  // For now, we'll just show a message
+  const resultContent = document.getElementById('resultContent');
+  resultContent.innerHTML = `
+    <div class="alert alert-info">
+      <h6>ℹ️ Biometric Device Connection</h6>
+      <p>Connecting to biometric device at IP: 192.168.105.200</p>
+      <p>In a real implementation, this would establish a connection to the ESSL MB160 device.</p>
+    </div>
+  `;
+  const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+  modal.show();
+});
+
+// Clear biometric data
+document.getElementById('clearBiometricData').addEventListener('click', function() {
+  if (confirm('⚠️ WARNING: This will permanently delete ALL attendance/punch data from the biometric device. Are you sure you want to continue?')) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    
+    fetch('/cms/staff/clear_biometric_data', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      const resultContent = document.getElementById('resultContent');
+      let alertClass = data.success ? 'success' : 'danger';
+      let icon = data.success ? '✅' : '❌';
+      
+      resultContent.innerHTML = `
+        <div class="alert alert-${alertClass}">
+          <h6>${icon} ${data.message}</h6>
+        </div>
+      `;
+      
+      const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+      modal.show();
+      
+      // Auto-close after 3 seconds
+      setTimeout(() => {
+        modal.hide();
+      }, 3000);
+    })
+    .catch(error => {
+      const resultContent = document.getElementById('resultContent');
+      resultContent.innerHTML = `
+        <div class="alert alert-danger">
+          <h6>❌ Error clearing biometric data</h6>
+          <p>${error.message}</p>
+        </div>
+      `;
+      
+      const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+      modal.show();
+    });
+  }
+});
+
+function processBiometricScan(biometricId) {
+  // Prevent processing multiple requests simultaneously
+  if (isProcessingQR) {
+    console.log("Biometric scan is already being processed, ignoring duplicate request");
+    return;
+  }
+  
+  isProcessingQR = true;
+  
+  // Debug CSRF token
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+  console.log('CSRF Token for biometric scan:', csrfToken);
+  
+  fetch('/cms/staff/scan_biometric', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': csrfToken
+    },
+    body: JSON.stringify({
+      user_id: biometricId
+    })
+  })
+  .then(response => {
+    console.log('Biometric scan response status:', response.status);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    console.log("Biometric scan backend response data:", data);
+    const resultContent = document.getElementById('resultContent');
+    
+    let bookingDetailsHtml = '';
+    let alertClass;
+    let icon;
+    let statusTextForDisplay;
+    let statusClassForDisplay;
+
+    if (data.message.includes('already been consumed')) {
+        alertClass = 'danger'; // Red for already consumed
+        icon = '❌';
+        statusTextForDisplay = 'Consumed (Already Scanned)'; // More descriptive
+        statusClassForDisplay = 'danger';
+    } else if (data.message.includes('Meal Consumed Successfully')) {
+        alertClass = 'success'; // Green for first successful scan
+        icon = '✅';
+        statusTextForDisplay = 'Consumed'; // Standard consumed status
+        statusClassForDisplay = 'success';
+    } else if (data.success) {
+        alertClass = 'success'; // Green for other successful operations
+        icon = '✅';
+        statusTextForDisplay = data.booking ? (data.booking.status || 'Success') : 'Success';
+        statusClassForDisplay = 'success';
+    } else {
+        alertClass = 'danger'; // Red for other errors
+        icon = '❌';
+        statusTextForDisplay = data.booking ? (data.booking.status || 'Error') : 'Error';
+        statusClassForDisplay = 'danger';
+    }
+
+    if (data.booking) {
+      bookingDetailsHtml = `
+        <hr>
+        <p><strong>Employee:</strong> ${data.booking.employee_name}</p>
+        <p><strong>ID:</strong> ${data.booking.employee_id}</p>
+        <p><strong>Unit:</strong> ${data.booking.unit}</p>
+        <p><strong>Date:</strong> ${data.booking.date}</p>
+        <p><strong>Shift:</strong> ${data.booking.shift}</p>
+        <p><strong>Status:</strong> <span class="badge bg-${statusClassForDisplay}">${statusTextForDisplay}</span></p>
+        ${data.booking.processed_at ? `<p><strong>Processed at:</strong> ${data.booking.processed_at}</p>` : (data.success ? `<p><strong>Processed at:</strong> ${new Date().toLocaleString()}</p>` : '')}
+      `;
+    }
+
+    resultContent.innerHTML = `
+      <div class="alert alert-${alertClass}">
+        <h6>${icon} ${data.message}</h6>
+        ${bookingDetailsHtml}
+        ${data.trace ? `<pre style='max-width:100%;overflow:auto;'>${data.trace}</pre>` : ''}
+      </div>
+    `;
+    
+    // Show modal
+    const modalElement = document.getElementById('resultModal');
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+    
+    // Automatically close modal after 2.5 seconds for both success and error messages
+    setTimeout(() => {
+      modal.hide();
+    }, 2500);
+    
+    // Reset processing flag after a delay to allow for proper display
+    setTimeout(() => {
+      isProcessingQR = false;
+    }, 3000);
+  })
+  .catch(error => {
+    console.error('Biometric scan error:', error);
+    const resultContent = document.getElementById('resultContent');
+    
+    let errorMessage = error.message || 'Unknown error';
+    let troubleshooting = '';
+    
+    if (errorMessage.includes('CSRF')) {
+      troubleshooting = '<p><strong>Solution:</strong> Please refresh the page and try again.</p>';
+    } else if (errorMessage.includes('HTTP error')) {
+      troubleshooting = '<p><strong>Solution:</strong> Server error. Please check if the application is running properly.</p>';
+    } else {
+      troubleshooting = '<p><strong>Solution:</strong> Please check the biometric user ID and try again.</p>';
+    }
+    
+    resultContent.innerHTML = `
+      <div class="alert alert-danger">
+        <h6>❌ Error processing biometric scan</h6>
+        <p>Error details: ${errorMessage}</p>
+        ${troubleshooting}
+        <p><small>If this error persists, try refreshing the page and try again.</small></p>
+      </div>
+    `;
+    
+    const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+    modal.show();
+    
+    // Reset processing flag on error
+    setTimeout(() => {
+      isProcessingQR = false;
+    }, 3000);
+  });
+}
+
 function processQRCode(qrData) {
   // Prevent processing the same QR code multiple times
   if (isProcessingQR) {
@@ -470,6 +703,100 @@ function processQRCode(qrData) {
      }, 3000);
   });
 }
+
+// Clear old punches keeping today's data
+document.getElementById('clearOldPunches').addEventListener('click', function() {
+  if (confirm('⚠️ WARNING: This will attempt to remove all punch data except for today\'s records. NOTE: The device may not support selective deletion, in which case you\'ll need to clear all data. Continue?')) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    
+    fetch('/cms/staff/clear_old_punches', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      const resultContent = document.getElementById('resultContent');
+      let alertClass = data.success ? 'success' : 'warning'; // Use warning for partial success
+      let icon = data.success ? '✅' : '⚠️';
+      
+      resultContent.innerHTML = `
+        <div class="alert alert-${alertClass}">
+          <h6>${icon} ${data.message}</h6>
+        </div>
+      `;
+      
+      const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+      modal.show();
+      
+      // Auto-close after 4 seconds
+      setTimeout(() => {
+        modal.hide();
+      }, 4000);
+    })
+    .catch(error => {
+      const resultContent = document.getElementById('resultContent');
+      resultContent.innerHTML = `
+        <div class="alert alert-danger">
+          <h6>❌ Error processing punches</h6>
+          <p>${error.message}</p>
+        </div>
+      `;
+      
+      const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+      modal.show();
+    });
+  }
+});
+
+// Sync CMS users to biometric device
+document.getElementById('syncBiometricUsers').addEventListener('click', function() {
+  if (confirm('⚠️ This will sync all users from your CMS database to the biometric device. Continue?')) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    
+    fetch('/cms/staff/sync_biometric_users', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      const resultContent = document.getElementById('resultContent');
+      let alertClass = data.success ? 'success' : 'danger';
+      let icon = data.success ? '✅' : '❌';
+      
+      resultContent.innerHTML = `
+        <div class="alert alert-${alertClass}">
+          <h6>${icon} ${data.message}</h6>
+        </div>
+      `;
+      
+      const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+      modal.show();
+      
+      // Auto-close after 3 seconds
+      setTimeout(() => {
+        modal.hide();
+      }, 3000);
+    })
+    .catch(error => {
+      const resultContent = document.getElementById('resultContent');
+      resultContent.innerHTML = `
+        <div class="alert alert-danger">
+          <h6>❌ Error syncing users</h6>
+          <p>${error.message}</p>
+        </div>
+      `;
+      
+      const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+      modal.show();
+    });
+  }
+});
 
 // File input QR scan logic
 const fileInput = document.getElementById('qr-input-file');

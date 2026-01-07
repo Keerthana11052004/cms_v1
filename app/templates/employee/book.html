@@ -39,9 +39,9 @@
   }
 
   .book-card .card-header {
-    font-size: 2rem;
+    font-size: 1.5rem;
     font-weight: 700;
-    padding: 1.5rem 1.5rem 0.8rem 1.5rem;
+    padding: 1rem 1rem 0.5rem 1rem;
     background: linear-gradient(90deg, #1976d2 0%, #64b5f6 100%);
     color: #fff;
     border-radius: 1rem 1rem 0 0;
@@ -60,8 +60,8 @@
 
   .book-card .form-control,
   .book-card .form-select {
-    font-size: 1.1em;
-    padding: 0.6rem 1rem;
+    font-size: 0.9em;
+    padding: 0.4rem 0.8rem;
     border-radius: 0.5rem;
   }
 
@@ -106,8 +106,8 @@
     }
 
     .book-card .card-header {
-      font-size: 1.8rem;
-      padding: 1.5rem 1.5rem 0.7rem 1.5rem;
+      font-size: 1.4rem;
+      padding: 1rem 1rem 0.5rem 1rem;
     }
 
     .book-card .card-body {
@@ -142,8 +142,8 @@
     }
 
     .book-card .card-header {
-      font-size: 1.6rem;
-      padding: 1.3rem 1.3rem 0.6rem 1.3rem;
+      font-size: 1.3rem;
+      padding: 0.9rem 0.9rem 0.4rem 0.9rem;
     }
 
     .book-card .card-body {
@@ -314,32 +314,16 @@
         <div class="card-body">
           <form method="post">
             {{ form.hidden_tag() }}
-            <div class="mb-4">
-              <label class="form-label">{{ _('Face Detection (Capture)') }}</label>
-              <div>
-                <button type="button" class="btn btn-outline-primary mb-2" id="openWebcamBtn">{{ _('Open Webcam')
-                  }}</button>
-                <div id="webcamContainer" style="display:none;">
-                  <video id="webcam" width="480" height="360" autoplay
-                    style="border-radius: 1rem; border: 1px solid #1976d2;"></video>
-                  <br>
-                  <button type="button" class="btn btn-success mt-2" id="captureBtn">{{ _('Capture Face') }}</button>
-                  <canvas id="faceCanvas" width="480" height="360" style="display:none;"></canvas>
-                  <img id="facePreview" src="" alt="{{ _('Face Preview') }}"
-                    style="display:none; margin-top:10px; border-radius:1rem; max-width:100%;" />
-                </div>
-                <input type="hidden" name="face_image" id="faceImageInput">
-              </div>
-            </div>
+            
             <div class="mb-4">
               {{ form.shift.label(class="form-label") }}
               <div>
                 {% for value, label in form.shift.choices %}
-                <label class="form-check form-check-inline" style="font-size: 1.5rem; margin-right: 2.5rem;">
+                <label class="form-check form-check-inline" style="font-size: 1.2rem; margin-right: 1.5rem;">
                   <input class="form-check-input" type="radio" name="shift" id="shift-{{ value|lower }}"
                     value="{{ value }}" {% if form.shift.data==value %}checked{% endif %} required
-                    style="width: 1.5em; height: 1.5em; margin-right: 0.5em;">
-                  <span class="form-check-label" style="font-size: 1.9rem; font-weight: 600;">{{ _(label) }}</span>
+                    style="width: 1.2em; height: 1.2em; margin-right: 0.5em;">
+                  <span class="form-check-label" style="font-size: 1.4rem; font-weight: 600;">{{ _(label) }}</span>
                 </label>
 
                 {% endfor %}
@@ -386,45 +370,6 @@
         setTimeout(function () { alert.style.display = 'none'; }, 500);
       }, 3000);
     });
-  });
-</script>
-<script>
-  // Webcam face capture logic
-  const openWebcamBtn = document.getElementById('openWebcamBtn');
-  const webcamContainer = document.getElementById('webcamContainer');
-  const webcam = document.getElementById('webcam');
-  const captureBtn = document.getElementById('captureBtn');
-  const faceCanvas = document.getElementById('faceCanvas');
-  const facePreview = document.getElementById('facePreview');
-  const faceImageInput = document.getElementById('faceImageInput');
-  let stream = null;
-
-  async function openWebcam() {
-    webcamContainer.style.display = 'block';
-    if (!stream) {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        webcam.srcObject = stream;
-      } catch (err) {
-        alert('Could not access webcam: ' + err);
-      }
-    }
-  }
-
-  openWebcamBtn.onclick = openWebcam;
-
-  captureBtn.onclick = function () {
-    faceCanvas.style.display = 'block';
-    faceCanvas.getContext('2d').drawImage(webcam, 0, 0, faceCanvas.width, faceCanvas.height);
-    const dataUrl = faceCanvas.toDataURL('image/png');
-    facePreview.src = dataUrl;
-    facePreview.style.display = 'block';
-    faceImageInput.value = dataUrl;
-  };
-
-  // Automatically open webcam on page load
-  document.addEventListener('DOMContentLoaded', function () {
-    openWebcam();
   });
 </script>
 

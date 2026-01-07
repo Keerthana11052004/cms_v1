@@ -113,6 +113,48 @@ def test_db():
         print(f"[DEBUG] Full traceback: {tb}", file=sys.stderr)
         return jsonify({'success': False, 'error': str(e), 'traceback': tb})
 
+@staff_bp.route('/clear_biometric_data', methods=['POST'])
+@login_required
+def clear_biometric_data():
+    from .biometric_integration import clear_biometric_attendance
+    try:
+        success = clear_biometric_attendance()
+        if success:
+            return jsonify({'success': True, 'message': 'All attendance data cleared successfully'})
+        else:
+            return jsonify({'success': False, 'message': 'Failed to clear attendance data'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error clearing data: {str(e)}'})
+
+
+@staff_bp.route('/clear_old_punches', methods=['POST'])
+@login_required
+def clear_old_punches():
+    from .biometric_integration import clear_old_punches_except_today
+    try:
+        success = clear_old_punches_except_today()
+        if success:
+            return jsonify({'success': True, 'message': 'Old punch data processed successfully (only today\'s punches remain)'})
+        else:
+            return jsonify({'success': False, 'message': 'Device does not support selective deletion. Only today\'s punches remain according to system records, but all punches are still stored on the device.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error processing punches: {str(e)}'})
+
+
+@staff_bp.route('/sync_biometric_users', methods=['POST'])
+@login_required
+def sync_biometric_users():
+    from .biometric_integration import sync_cms_users_to_biometric
+    try:
+        success = sync_cms_users_to_biometric()
+        if success:
+            return jsonify({'success': True, 'message': 'Users synced successfully to biometric device'})
+        else:
+            return jsonify({'success': False, 'message': 'Failed to sync users to biometric device'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error syncing users: {str(e)}'})
+
+
 @staff_bp.route('/simple_test')
 @login_required
 def simple_test():
@@ -209,6 +251,182 @@ def create_test_booking():
         tb = traceback.format_exc()
         print(f"[DEBUG] Full traceback: {tb}", file=sys.stderr)
         return jsonify({'success': False, 'error': str(e), 'traceback': tb})
+
+# Biometric scan function for meal consumption
+@staff_bp.route('/scan_biometric', methods=['POST'])
+@login_required
+def scan_biometric():
+    from . import mysql
+    import sys
+    import traceback
+    from datetime import date
+    
+    # Initialize variables to prevent unbound errors
+    conn = None
+    cur = None
+    
+    try:
+        print("=== SCAN_BIOMETRIC CALLED ===", file=sys.stderr)
+        
+        # Get biometric user ID from request
+        biometric_data = request.json if request.is_json else request.form
+        user_id = biometric_data.get('user_id')
+        
+        if not user_id:
+            response_data = {'success': False, 'message': 'No biometric user ID provided'}
+            print(f"[DEBUG] JSON response: {response_data}", file=sys.stderr)
+            return jsonify(response_data)
+        
+        # Find the employee in our system based on biometric ID
+        conn = get_db_connection(False)
+        cur = conn.cursor()
+        
+        # First, find the employee by matching the biometric user_id with employee_id
+        cur.execute("SELECT id, name, employee_id FROM employees WHERE employee_id = %s", (str(user_id),))
+        employee = cur.fetchone()
+        
+        if not employee:
+            response_data = {'success': False, 'message': f'Employee with biometric ID {user_id} not found in system.'}
+            print(f"[DEBUG] JSON response: {response_data}", file=sys.stderr)
+            return jsonify(response_data)
+        
+        employee_db_id = employee['id']
+        employee_name = employee['name']
+        employee_id = employee['employee_id']
+        
+        # Find today's booking for this employee that is still 'Booked'
+        today = date.today()
+        cur.execute("""
+            SELECT b.*, m.name as meal_name, l.name as location_name
+            FROM bookings b
+            JOIN meals m ON b.meal_id = m.id
+            JOIN locations l ON b.location_id = l.id
+            WHERE b.employee_id = %s 
+            AND b.booking_date = %s
+            AND b.status = 'Booked'
+            ORDER BY b.created_at DESC
+        """, (employee_db_id, today))
+        
+        booking = cur.fetchone()
+        
+        if not booking:
+            response_data = {
+                'success': False,
+                'message': f'No active booking found for {employee_name} today.',
+                'booking': {
+                    'employee_name': employee_name,
+                    'employee_id': employee_id,
+                    'date': today.strftime('%Y-%m-%d'),
+                    'status': 'No Booking'
+                }
+            }
+            print(f"[DEBUG] JSON response: {response_data}", file=sys.stderr)
+            return jsonify(response_data)
+        
+        # Process the booking
+        status = booking['status']
+        if isinstance(status, bytes):
+            status = status.decode('utf-8')
+        
+        if status.strip() == 'Consumed':
+            # Format the consumed_at time for display
+            consumed_time = booking.get('consumed_at')
+            if consumed_time:
+                if hasattr(consumed_time, 'strftime'):
+                    processed_time = consumed_time.strftime('%d/%m/%Y, %I:%M:%S %p')
+                else:
+                    processed_time = str(consumed_time)
+            else:
+                processed_time = 'Unknown'
+            
+            response_data = {
+                'success': False,
+                'message': 'ℹ️ This meal has already been consumed.',
+                'booking': {
+                    'employee_name': employee_name,
+                    'employee_id': employee_id,
+                    'unit': booking['location_name'],
+                    'date': booking['booking_date'].strftime('%Y-%m-%d'),
+                    'shift': booking['shift'],
+                    'status': status,
+                    'processed_at': processed_time
+                }
+            }
+            print(f"[DEBUG] JSON response: {response_data}", file=sys.stderr)
+            return jsonify(response_data)
+        
+        elif status.strip() != 'Booked':
+            response_data = {
+                'success': False,
+                'message': 'Booking is not in a valid state for consumption.',
+                'booking': {
+                    'employee_name': employee_name,
+                    'employee_id': employee_id,
+                    'unit': booking['location_name'],
+                    'date': booking['booking_date'].strftime('%Y-%m-%d'),
+                    'shift': booking['shift'],
+                    'status': booking['status']
+                }
+            }
+            print(f"[DEBUG] JSON response: {response_data}", file=sys.stderr)
+            return jsonify(response_data)
+        
+        # Update booking status to consumed
+        try:
+            cur.execute("""
+                UPDATE bookings 
+                SET status = 'Consumed', consumed_at = NOW() 
+                WHERE id = %s
+            """, (booking['id'],))
+            
+            # Log the consumption
+            cur.execute("""
+                INSERT INTO meal_consumption_log (booking_id, employee_id, meal_id, location_id, staff_id)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (booking['id'], employee_db_id, booking['meal_id'], booking['location_id'], current_user.id))
+            
+            conn.commit()
+            
+            response_data = {
+                'success': True,
+                'message': f'✅ Meal Consumed Successfully for {employee_name} (ID: {employee_id})',
+                'booking': {
+                    'employee_name': employee_name,
+                    'employee_id': employee_id,
+                    'unit': booking['location_name'],
+                    'date': booking['booking_date'].strftime('%Y-%m-%d'),
+                    'shift': booking['shift'],
+                    'status': 'Consumed'
+                }
+            }
+            print(f"[DEBUG] JSON response: {response_data}", file=sys.stderr)
+            return jsonify(response_data)
+        
+        except Exception as e:
+            tb = traceback.format_exc()
+            if conn:
+                conn.rollback()
+            response_data = {'success': False, 'message': f'Error processing meal: {str(e)}', 'trace': tb}
+            print(f"[DEBUG] JSON response: {response_data}", file=sys.stderr)
+            return jsonify(response_data)
+    
+    except Exception as e:
+        tb = traceback.format_exc()
+        response_data = {
+            'success': False,
+            'message': f'An unexpected error occurred: {str(e)}',
+            'trace': tb
+        }
+        print(f"[DEBUG] UNEXPECTED ERROR: {str(e)}", file=sys.stderr)
+        print(f"[DEBUG] Full traceback: {tb}", file=sys.stderr)
+        return jsonify(response_data), 500
+    
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
 
 @staff_bp.route('/scan_qr', methods=['POST'])
 @login_required
