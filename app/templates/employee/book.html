@@ -23,6 +23,12 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   }
 
+  #backToDashboardBtn {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+
   .dashboard-nav-container {
     position: absolute;
     top: 1rem;
@@ -120,8 +126,8 @@
 
     .book-card .form-control,
     .book-card .form-select {
-      font-size: 1.05em;
-      padding: 0.55rem 0.9rem;
+      font-size: 0.85em;
+      padding: 0.35rem 0.7rem;
     }
 
     .book-card .btn-primary {
@@ -156,8 +162,8 @@
 
     .book-card .form-control,
     .book-card .form-select {
-      font-size: 1em;
-      padding: 0.5rem 0.8rem;
+      font-size: 0.8em;
+      padding: 0.3rem 0.6rem;
     }
 
     .book-card .btn-primary {
@@ -185,8 +191,8 @@
     }
 
     .book-card .card-header {
-      font-size: 1.4rem;
-      padding: 1.1rem 1.1rem 0.5rem 1.1rem;
+      font-size: 1.2rem;
+      padding: 0.8rem 0.8rem 0.3rem 0.8rem;
     }
 
     .book-card .card-body {
@@ -199,8 +205,8 @@
 
     .book-card .form-control,
     .book-card .form-select {
-      font-size: 0.95em;
-      padding: 0.45rem 0.7rem;
+      font-size: 0.75em;
+      padding: 0.25rem 0.5rem;
     }
 
     .book-card .btn-primary {
@@ -236,8 +242,8 @@
 
     .book-card .form-control,
     .book-card .form-select {
-      font-size: 0.95em;
-      padding: 0.55rem 0.8rem;
+      font-size: 0.75em;
+      padding: 0.25rem 0.5rem;
     }
 
     .book-card .btn-primary {
@@ -257,8 +263,8 @@
     }
 
     .book-card .card-header {
-      font-size: 1.2rem;
-      padding: 1rem 1rem 0.5rem 1rem;
+      font-size: 1.1rem;
+      padding: 0.7rem 0.7rem 0.2rem 0.7rem;
     }
 
     .book-card .card-body {
@@ -271,8 +277,8 @@
 
     .book-card .form-control,
     .book-card .form-select {
-      font-size: 0.9em;
-      padding: 0.5rem 0.7rem;
+      font-size: 0.7em;
+      padding: 0.2rem 0.4rem;
     }
 
     .book-card .btn-primary {
@@ -286,23 +292,20 @@
     }
   }
 </style>
-<div class="d-flex justify-content-end align-items-center"
-  style="position: absolute; top: 1rem; right: 1rem; gap: 1rem;">
-
-  <a href="{{ url_for('employee.dashboard') }}" class="back-btn" title="{{ _('Back to Dashboard') }}">
-    <i class="bi bi-arrow-left"></i>
-  </a>
-  <div class="dropdown">
-    <button class="btn btn-secondary dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown"
-      aria-expanded="false">
-      <i class="bi bi-translate"></i> English
+<div class="d-flex justify-content-end align-items-center" style="position: fixed; top: 20px; right: 20px; z-index: 1000; gap: 1rem;">
+    <button class="btn btn-secondary" id="backToDashboardBtn" data-href="{{ url_for('employee.dashboard') }}" title="{{ _('Back to Dashboard') }}">
+        <i class="bi bi-arrow-left"></i>
     </button>
-    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
-      <li><a class="dropdown-item {% if g.locale == 'en' %}active{% endif %}" href="?lang=en">English</a></li>
-      <li><a class="dropdown-item {% if g.locale == 'ta' %}active{% endif %}" href="?lang=ta">Tamil</a></li>
-      <li><a class="dropdown-item {% if g.locale == 'hi' %}active{% endif %}" href="?lang=hi">Hindi</a></li>
-    </ul>
-  </div>
+    <div class="dropdown">
+        <button class="btn btn-secondary dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-translate"></i> English
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+            <li><a class="dropdown-item {% if g.locale == 'en' %}active{% endif %}" href="?lang=en">English</a></li>
+            <li><a class="dropdown-item {% if g.locale == 'ta' %}active{% endif %}" href="?lang=ta">Tamil</a></li>
+            <li><a class="dropdown-item {% if g.locale == 'hi' %}active{% endif %}" href="?lang=hi">Hindi</a></li>
+        </ul>
+    </div>
 </div>
 <div class="container py-5">
   <div class="row justify-content-center">
@@ -401,5 +404,13 @@
       }
     }
   });
+  
+  // Add click event for back to dashboard button
+  const backBtn = document.getElementById('backToDashboardBtn');
+  if (backBtn) {
+    backBtn.addEventListener('click', function() {
+      window.location.href = this.getAttribute('data-href');
+    });
+  }
 </script>
 {% endblock %}
