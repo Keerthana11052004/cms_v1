@@ -26,30 +26,30 @@
   }
   .dashboard-card {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    border-radius: 10px;
+    border-radius: 8px;
     border: none;
-    min-height: 120px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    min-height: 80px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   }
   .dashboard-card:hover {
     transform: translateY(-4px) scale(1.03);
     box-shadow: 0 8px 32px rgba(0,0,0,0.22);
   }
   .dashboard-card .card-body {
-    padding: 1.25rem 1rem;
-    min-height: 100px;
+    padding: 0.5rem 0.7rem;
+    min-height: 60px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
   }
   .dashboard-card .card-title {
-    font-size: 1.1rem;
+    font-size: 0.9rem;
     font-weight: 700;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.3rem;
   }
   .dashboard-card .card-text {
-    font-size: 1.75rem;
+    font-size: 1.4rem;
     font-weight: 800;
     margin-bottom: 0;
   }
@@ -84,13 +84,13 @@
   /* Mobile Responsiveness */
   @media (max-width: 1199.98px) {
     .dashboard-card .card-body {
-      padding: 1rem 0.85rem;
+      padding: 0.7rem 0.6rem;
     }
     .dashboard-card .card-title {
-      font-size: 1rem;
+      font-size: 0.9rem;
     }
     .dashboard-card .card-text {
-      font-size: 1.5rem;
+      font-size: 1.2rem;
     }
     .action-btn {
       padding: 0.65rem;
@@ -101,13 +101,13 @@
 
   @media (max-width: 991.98px) {
     .dashboard-card .card-body {
-      padding: 0.85rem 0.65rem;
+      padding: 0.65rem 0.5rem;
     }
     .dashboard-card .card-title {
-      font-size: 0.9rem;
+      font-size: 0.8rem;
     }
     .dashboard-card .card-text {
-      font-size: 1.25rem;
+      font-size: 1.1rem;
     }
     .action-btn {
       padding: 0.55rem;
@@ -121,13 +121,13 @@
       padding: 0 0.15rem;
     }
     .dashboard-card .card-body {
-      padding: 0.85rem 0.5rem;
+      padding: 0.6rem 0.4rem;
     }
     .dashboard-card .card-title {
-      font-size: 0.8rem;
+      font-size: 0.7rem;
     }
     .dashboard-card .card-text {
-      font-size: 0.9rem;
+      font-size: 0.8rem;
     }
     .action-btn {
       padding: 0.5rem;
@@ -141,14 +141,14 @@
 
   @media (max-width: 575.98px) {
     .dashboard-card .card-body {
-      padding: 0.65rem 0.3rem;
+      padding: 0.5rem 0.25rem;
       min-width: 0;
     }
     .dashboard-card .card-title {
-      font-size: 0.75rem;
+      font-size: 0.65rem;
     }
     .dashboard-card .card-text {
-      font-size: 0.8rem;
+      font-size: 0.7rem;
     }
     .action-btn {
       padding: 0.4rem;

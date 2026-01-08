@@ -792,10 +792,10 @@ def vendor_report_unit_wise():
     per_page = 10  # Number of items per page
     offset = (page - 1) * per_page
     
-    query = "SELECT name as vendor_name, unit, purpose, count FROM vendors WHERE purpose LIKE %s"
-    count_query = "SELECT COUNT(*) as count FROM vendors WHERE purpose LIKE %s"
-    params = ['Outsider:%']
-    count_params = ['Outsider:%']
+    query = "SELECT visitor_name as vendor_name, unit, purpose, count FROM outsider_meals"
+    count_query = "SELECT COUNT(*) as count FROM outsider_meals"
+    params = []
+    count_params = []
     where_conditions = []
 
     if current_user.role == 'Admin' and current_user.employee_id == 'a001':
@@ -872,10 +872,10 @@ def vendor_report():
     purpose_filter = request.args.get('purpose')
     unit_filter = request.args.get('unit')
 
-    query = "SELECT name as vendor_name, unit, food_licence_path, agreement_date FROM vendors WHERE (food_licence_path IS NOT NULL OR agreement_date IS NOT NULL) AND (purpose IS NULL OR purpose = '') AND purpose NOT LIKE %s"
-    count_query = "SELECT COUNT(*) as count FROM vendors WHERE (food_licence_path IS NOT NULL OR agreement_date IS NOT NULL) AND (purpose IS NULL OR purpose = '') AND purpose NOT LIKE %s"
-    params = ['Outsider:%']
-    count_params = ['Outsider:%']
+    query = "SELECT name as vendor_name, unit, food_licence_path, agreement_date FROM vendors WHERE (food_licence_path IS NOT NULL OR agreement_date IS NOT NULL)"
+    count_query = "SELECT COUNT(*) as count FROM vendors WHERE (food_licence_path IS NOT NULL OR agreement_date IS NOT NULL)"
+    params = []
+    count_params = []
     where_conditions = []
 
     if current_user.role == 'Admin' and current_user.employee_id == 'a001':
@@ -961,9 +961,86 @@ def vendor_report():
                          csrf_token=generate_csrf(),
                          pagination=pagination)
 
+# Route for adding/editing outsider meal data
+@admin_bp.route('/add_outsider_meal', methods=['GET', 'POST'])
+@login_required
+def add_outsider_meal():
+    if current_user.role != 'Admin':
+        flash('Access denied.', 'danger')
+        return redirect(url_for('admin.dashboard'))
+    
+    form = OutsiderMealVendorForm()
+    populate_outsider_meal_form_choices(form)
+    
+    if form.validate_on_submit():
+        visitor_name = form.name.data
+        unit = form.unit.data
+        purpose = form.purpose.data
+        count = 1  # Default count
+        
+        conn = None
+        cur = None
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            
+            # Check if outsider meal already exists
+            cur.execute('SELECT id FROM outsider_meals WHERE visitor_name = %s', (visitor_name,))
+            existing_outsider_meal = cur.fetchone()
+            if existing_outsider_meal:
+                flash('An outsider meal with this name already exists. Please use a unique name.', 'danger')
+            else:
+                cur.execute('''
+                    INSERT INTO outsider_meals (visitor_name, unit, purpose, count)
+                    VALUES (%s, %s, %s, %s)
+                ''', (visitor_name, unit, purpose, count))
+                conn.commit()
+                flash('Outsider meal added successfully!', 'success')
+                return redirect(url_for('admin.vendor_report_unit_wise'))
+        except IntegrityError as e:
+            if e.args[0] == 1062:
+                flash('An outsider meal with this name already exists. Please use a unique name.', 'danger')
+            else:
+                flash('Database error: ' + str(e), 'danger')
+            if conn:
+                conn.rollback()
+        except Exception as e:
+            flash(f'Error processing outsider meal: {e}', 'danger')
+            if conn:
+                conn.rollback()
+        finally:
+            if cur:
+                cur.close()
+            if conn:
+                conn.close()
+    
+    populate_outsider_meal_form_choices(form)
+    return render_template('admin/add_outsider_meal.html', form=form, csrf_token=generate_csrf())
+
+
 @admin_bp.route('/update_vendor_details', methods=['POST'])
 @login_required
 def update_vendor_details():
+    # Helper function to populate form choices
+    def populate_outsider_meal_form_choices(form):
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Get units
+        cur.execute('SELECT name FROM locations ORDER BY name')
+        units = [row['name'] for row in cur.fetchall()]
+        form.unit.choices = [(unit, unit) for unit in units]
+        
+        # Get default purposes
+        default_purposes = ['Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Beverages', 'Other']
+        cur.execute('SELECT DISTINCT purpose FROM outsider_meals WHERE purpose IS NOT NULL AND purpose != "" ORDER BY purpose')
+        db_purposes = [row['purpose'] for row in cur.fetchall()]
+        all_purposes = list(set(default_purposes + db_purposes))
+        all_purposes.sort()
+        form.purpose.choices = [(purpose, purpose) for purpose in all_purposes]
+        
+        cur.close()
+        conn.close()
     if current_user.role != 'Admin':
         flash('Access denied.', 'danger')
         return redirect(url_for('admin.dashboard'))
@@ -1079,29 +1156,22 @@ def update_vendor_report_unit_wise():
                 purpose = f'Outsider: {purpose}'
             
             if original_vendor_name:
-                cur.execute('SELECT id FROM vendors WHERE name = %s', (original_vendor_name,))
-                vendor = cur.fetchone()
-                if vendor:
-                    cur.execute('''
-                        UPDATE vendors
-                        SET name = %s, purpose = %s, unit = %s, count = %s
-                        WHERE name = %s
-                    ''', (vendor_name, purpose, unit, count, original_vendor_name))
-                else:
-                    cur.execute('''
-                        INSERT INTO vendors (name, unit, purpose, count)
-                        VALUES (%s, %s, %s, %s)
-                    ''', (vendor_name, unit, purpose, count))
+                # Update existing outsider meal record
+                cur.execute('''
+                    UPDATE outsider_meals
+                    SET visitor_name = %s, purpose = %s, unit = %s, count = %s
+                    WHERE visitor_name = %s
+                ''', (vendor_name, purpose, unit, count, original_vendor_name))
             else:
-                # Check if vendor already exists before inserting
-                cur.execute('SELECT id FROM vendors WHERE name = %s', (vendor_name,))
-                existing_vendor = cur.fetchone()
-                if existing_vendor:
-                    flash('A vendor with this name already exists. Please use a unique vendor name.', 'danger')
+                # Check if outsider meal already exists before inserting
+                cur.execute('SELECT id FROM outsider_meals WHERE visitor_name = %s', (vendor_name,))
+                existing_outsider_meal = cur.fetchone()
+                if existing_outsider_meal:
+                    flash('An outsider meal with this name already exists. Please use a unique name.', 'danger')
                     return redirect(url_for('admin.vendor_report_unit_wise'))
                 
                 cur.execute('''
-                    INSERT INTO vendors (name, unit, purpose, count)
+                    INSERT INTO outsider_meals (visitor_name, unit, purpose, count)
                     VALUES (%s, %s, %s, %s)
                 ''', (vendor_name, unit, purpose, count))
             conn.commit()
