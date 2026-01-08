@@ -192,7 +192,7 @@ class BiometricMealBooking:
                         time_module.sleep(10)  # Wait 10 seconds before retrying
                         continue
 
-                logs = self.conn.get_attendance()
+                logs = self.conn.get_attendance() if self.conn else []
 
                 for log in logs:
                     punch_time = log.timestamp
@@ -381,10 +381,7 @@ def sync_cms_users_to_biometric():
                     user_id=str(user_id),
                     name=name,
                     password='',  # No password required
-                    role=0,  # Regular user
-                    card=0,  # No card number
-                    group_id='',  # No group
-                    timezone=''
+                    card=0  # No card number
                 )
                 print(f"✅ Added user {name} (ID: {user_id}) to biometric device")
                 synced_count += 1

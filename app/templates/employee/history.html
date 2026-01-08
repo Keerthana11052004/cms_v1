@@ -336,7 +336,6 @@
                   <th>{{ _('Date') }}</th>
                   <th>{{ _('Shift') }}</th>
                   <th>{{ _('Status') }}</th>
-                  <th>{{ _('QR Code') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -346,17 +345,6 @@
                   <td>{{ booking.booking_date.strftime('%Y-%m-%d') if booking.booking_date else booking.booking_date }}</td>
                   <td>{{ booking.shift }}</td>
                   <td>{{ booking.status }}</td>
-                  <td>
-                    {% if booking.qr_code_data %}
-                      <img src="data:image/png;base64,{{ booking.qr_code_data }}" 
-                           alt="QR Code" 
-                           class="qr-code-img"
-                           data-qr-src="data:image/png;base64,{{ booking.qr_code_data }}"
-                           title="{{ _('Click to view larger QR code') }}">
-                    {% else %}
-                      {{ _('N/A') }}
-                    {% endif %}
-                  </td>
                 </tr>
                 {% endfor %}
               </tbody>

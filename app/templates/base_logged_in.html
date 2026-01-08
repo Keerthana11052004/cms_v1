@@ -9,44 +9,47 @@
         <div class="fs-6 fw-bold">CMS</div> <!-- Smaller font size -->
         <div class="text-muted small mt-1" style="color: #111 !important; font-size: 0.75rem;">Current User : {{ current_user.name }}</div> <!-- Smaller font size -->
       </div>
-      <ul class="nav flex-column">
-        {% if current_user.role == 'Admin' %}
-          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.dashboard') }}"><span class="menu-icon"><i class="bi bi-speedometer2"></i></span><span class="menu-label">Dashboard</span></a></li>
-          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.employee_reports') }}"><span class="menu-icon"><i class="bi bi-people"></i></span><span class="menu-label">Employee Reports</span></a></li>
-          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.dept_location_reports') }}"><span class="menu-icon"><i class="bi bi-building"></i></span><span class="menu-label">Dept/Location Reports</span></a></li>
-          {% if current_user.role == 'Admin' and current_user.location and current_user.employee_id != 'a001' %}
-          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.add_vendor_item') }}"><span class="menu-icon"><i class="bi bi-plus-circle"></i></span><span class="menu-label">Add Vendor Item</span></a></li>
-          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.add_outsider_meal') }}"><span class="menu-icon"><i class="bi bi-people-fill"></i></span><span class="menu-label">Add Outsider Meal</span></a></li>
+      <div class="sidebar-content">
+        <ul class="nav flex-column">
+          {% if current_user.role == 'Admin' %}
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.dashboard') }}"><span class="menu-icon"><i class="bi bi-speedometer2"></i></span><span class="menu-label">Dashboard</span></a></li>
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.employee_reports') }}"><span class="menu-icon"><i class="bi bi-people"></i></span><span class="menu-label">Employee Reports</span></a></li>
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.dept_location_reports') }}"><span class="menu-icon"><i class="bi bi-building"></i></span><span class="menu-label">Dept/Location Reports</span></a></li>
+            {% if current_user.role == 'Admin' and current_user.location and current_user.employee_id != 'a001' %}
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.add_vendor_item') }}"><span class="menu-icon"><i class="bi bi-plus-circle"></i></span><span class="menu-label">Add Vendor Item</span></a></li>
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.add_outsider_meal') }}"><span class="menu-icon"><i class="bi bi-people-fill"></i></span><span class="menu-label">Add Outsider Meal</span></a></li>
+            {% endif %}
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.add_user') }}"><span class="menu-icon"><i class="bi bi-person-plus"></i></span><span class="menu-label">Add User</span></a></li>
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.vendor_report_unit_wise') }}"><span class="menu-icon"><i class="bi bi-truck"></i></span><span class="menu-label">Outsider Meal Report</span></a></li>
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.vendor_report') }}"><span class="menu-icon"><i class="bi bi-file-text"></i></span><span class="menu-label">Vendor Report</span></a></li>
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.export') }}"><span class="menu-icon"><i class="bi bi-file-earmark-arrow-down"></i></span><span class="menu-label">Export</span></a></li>
+            {% if current_user.employee_id == 'a001' %}
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.cost_subsidy') }}"><span class="menu-icon"><i class="bi bi-cash-coin"></i></span><span class="menu-label">Cost & Subsidy</span></a></li>
+            {% endif %}
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.profile') }}"><span class="menu-icon"><i class="bi bi-person"></i></span><span class="menu-label">Profile</span></a></li>
+            <li class="nav-item mt-1"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.logout') }}"><span class="menu-icon"><i class="bi bi-box-arrow-right"></i></span><span class="menu-label">{{ _('Logout') }}</span></a></li>
+          {% elif current_user.role == 'Accounts' or (current_user.role == 'Admin' and current_user.department and current_user.department|lower == 'finance') %}
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.dashboard') }}"><span class="menu-icon"><i class="bi bi-speedometer2"></i></span><span class="menu-label">Dashboard</span></a></li>
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.cost_subsidy') }}"><span class="menu-icon"><i class="bi bi-cash-coin"></i></span><span class="menu-label">Cost & Subsidy</span></a></li>
+            <li class="nav-item mt-1"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.logout') }}"><span class="menu-icon"><i class="bi bi-box-arrow-right"></i></span><span class="menu-label">{{ _('Logout') }}</span></a></li>
+          {% elif current_user.role == 'Employee' %}
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.dashboard') }}"><span class="menu-icon"><i class="bi bi-speedometer2"></i></span><span class="menu-label">Dashboard</span></a></li>
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.book_meal') }}"><span class="menu-icon"><i class="bi bi-calendar-plus"></i></span><span class="menu-label">Book Meal</span></a></li>
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.booking_history') }}"><span class="menu-icon"><i class="bi bi-journal-text"></i></span><span class="menu-label">My Bookings</span></a></li>
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.view_menu') }}"><span class="menu-icon"><i class="bi bi-card-list"></i></span><span class="menu-label">Today's Meal</span></a></li>
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.profile') }}"><span class="menu-icon"><i class="bi bi-person"></i></span><span class="menu-label">Profile</span></a></li>
+            <li class="nav-item mt-1"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.logout') }}"><span class="menu-icon"><i class="bi bi-box-arrow-right"></i></span><span class="menu-label">{{ _('Logout') }}</span></a></li>
+          {% elif current_user.role in ['Staff', 'Supervisor'] %}
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.dashboard') }}"><span class="menu-icon"><i class="bi bi-speedometer2"></i></span><span class="menu-label">Dashboard</span></a></li>
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.qr_scanner') }}"><span class="menu-icon"><i class="bi bi-fingerprint"></i></span><span class="menu-label">Biometric Scanner</span></a></li>
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.summary') }}"><span class="menu-icon"><i class="bi bi-clipboard-data"></i></span><span class="menu-label">Daily Summary</span></a></li>
+            {% if current_user.role == 'Supervisor' %}
+              <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.manage_roles') }}"><span class="menu-icon"><i class="bi bi-person-gear"></i></span><span class="menu-label">Role Management</span></a></li>
+            {% endif %}
+            <li class="nav-item mt-1"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.logout') }}"><span class="menu-icon"><i class="bi bi-box-arrow-right"></i></span><span class="menu-label">{{ _('Logout') }}</span></a></li>
           {% endif %}
-          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.vendor_report_unit_wise') }}"><span class="menu-icon"><i class="bi bi-truck"></i></span><span class="menu-label">Outsider Meal Report</span></a></li>
-          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.vendor_report') }}"><span class="menu-icon"><i class="bi bi-file-text"></i></span><span class="menu-label">Vendor Report</span></a></li>
-          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.export') }}"><span class="menu-icon"><i class="bi bi-file-earmark-arrow-down"></i></span><span class="menu-label">Export</span></a></li>
-          {% if current_user.employee_id == 'a001' %}
-          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.cost_subsidy') }}"><span class="menu-icon"><i class="bi bi-cash-coin"></i></span><span class="menu-label">Cost & Subsidy</span></a></li>
-          {% endif %}
-          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.profile') }}"><span class="menu-icon"><i class="bi bi-person"></i></span><span class="menu-label">Profile</span></a></li>
-          <li class="nav-item mt-1"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.logout') }}"><span class="menu-icon"><i class="bi bi-box-arrow-right"></i></span><span class="menu-label">{{ _('Logout') }}</span></a></li>
-        {% elif current_user.role == 'Accounts' or (current_user.role == 'Admin' and current_user.department and current_user.department|lower == 'finance') %}
-          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.dashboard') }}"><span class="menu-icon"><i class="bi bi-speedometer2"></i></span><span class="menu-label">Dashboard</span></a></li>
-          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.cost_subsidy') }}"><span class="menu-icon"><i class="bi bi-cash-coin"></i></span><span class="menu-label">Cost & Subsidy</span></a></li>
-          <li class="nav-item mt-1"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.logout') }}"><span class="menu-icon"><i class="bi bi-box-arrow-right"></i></span><span class="menu-label">{{ _('Logout') }}</span></a></li>
-        {% elif current_user.role == 'Employee' %}
-          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.dashboard') }}"><span class="menu-icon"><i class="bi bi-speedometer2"></i></span><span class="menu-label">Dashboard</span></a></li>
-          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.book_meal') }}"><span class="menu-icon"><i class="bi bi-calendar-plus"></i></span><span class="menu-label">Book Meal</span></a></li>
-          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.booking_history') }}"><span class="menu-icon"><i class="bi bi-journal-text"></i></span><span class="menu-label">My Bookings</span></a></li>
-          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.view_menu') }}"><span class="menu-icon"><i class="bi bi-card-list"></i></span><span class="menu-label">Today's Meal</span></a></li>
-          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.profile') }}"><span class="menu-icon"><i class="bi bi-person"></i></span><span class="menu-label">Profile</span></a></li>
-          <li class="nav-item mt-1"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.logout') }}"><span class="menu-icon"><i class="bi bi-box-arrow-right"></i></span><span class="menu-label">{{ _('Logout') }}</span></a></li>
-        {% elif current_user.role in ['Staff', 'Supervisor'] %}
-          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.dashboard') }}"><span class="menu-icon"><i class="bi bi-speedometer2"></i></span><span class="menu-label">Dashboard</span></a></li>
-          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.qr_scanner') }}"><span class="menu-icon"><i class="bi bi-upc-scan"></i></span><span class="menu-label">QR Scanner</span></a></li>
-          <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.summary') }}"><span class="menu-icon"><i class="bi bi-clipboard-data"></i></span><span class="menu-label">Daily Summary</span></a></li>
-          {% if current_user.role == 'Supervisor' %}
-            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.manage_roles') }}"><span class="menu-icon"><i class="bi bi-person-gear"></i></span><span class="menu-label">Role Management</span></a></li>
-          {% endif %}
-          <li class="nav-item mt-1"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.logout') }}"><span class="menu-icon"><i class="bi bi-box-arrow-right"></i></span><span class="menu-label">{{ _('Logout') }}</span></a></li>
-        {% endif %}
-      </ul>
+        </ul>
+      </div>
       <div class="sidebar-menu-section mt-auto p-2"> <!-- Reduced padding -->
         {% block sidebar_menu %}{% endblock %}
       </div>
@@ -106,38 +109,34 @@
     transition: width 0.3s cubic-bezier(.4,0,.2,1), transform 0.3s cubic-bezier(.4,0,.2,1);
     display: flex;
     flex-direction: column;
+    overflow-y: auto; /* Add vertical scroll */
   }
   .sidebar.collapsed {
     width: 50px; /* Reduced collapsed width */
   }
-  .sidebar-header {
-    margin-bottom: 1.5rem; /* Reduced margin */
-    transition: opacity 0.3s;
-    white-space: nowrap;
-    color: #1976d2 !important;
+  .sidebar-content {
+    flex: 1;
+    overflow-y: auto; /* Add vertical scroll to the content area */
+    overflow-x: hidden;
+    padding-right: 4px; /* Space for scrollbar */
   }
-  .sidebar.collapsed .sidebar-header .fs-4,
-  .sidebar.collapsed .sidebar-header .text-muted {
-    opacity: 0;
-    pointer-events: none;
+  .sidebar-content::-webkit-scrollbar {
+    width: 6px;
   }
-  .content-container {
-    margin-left: 220px; /* Adjusted for smaller sidebar */
-    padding: 1.5rem; /* Reduced padding */
-    transition: margin-left 0.3s cubic-bezier(.4,0,.2,1);
-    overflow-y: auto;
-    height: 100vh;
+  .sidebar-content::-webkit-scrollbar-track {
+    background: #bbdefb;
   }
-  .sidebar.collapsed ~ .content-container {
-    margin-left: 50px; /* Adjusted for smaller collapsed sidebar */
+  .sidebar-content::-webkit-scrollbar-thumb {
+    background: #90a4ae;
+    border-radius: 3px;
   }
-  .content-container.full {
-    margin-left: 50px; /* Adjusted for smaller collapsed sidebar */
+  .sidebar-content::-webkit-scrollbar-thumb:hover {
+    background: #78909c;
   }
   .sidebar .nav {
     flex-direction: column;
-    height: 100%;
     display: flex;
+    overflow-y: auto; /* Allow scrolling within nav */
   }
   .sidebar .nav-item {
     flex: 0 0 auto;
@@ -186,6 +185,25 @@
   .sidebar .nav-link.text-danger {
     color: #fff !important;
   }
+  
+  /* Main content container - this ensures content is properly positioned next to sidebar */
+  .content-container {
+    margin-left: 220px;
+    padding: 1.5rem;
+    transition: margin-left 0.3s cubic-bezier(.4,0,.2,1);
+    overflow-y: auto;
+    height: 100vh;
+    width: calc(100% - 220px);
+  }
+  .sidebar.collapsed ~ .content-container {
+    margin-left: 50px;
+    width: calc(100% - 50px);
+  }
+  .content-container.full {
+    margin-left: 50px;
+    width: calc(100% - 50px);
+  }
+  
   .hamburger {
     position: fixed;
     top: 15px; /* Adjusted position */

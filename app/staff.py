@@ -258,19 +258,18 @@ def create_test_booking():
 def scan_biometric():
     from . import mysql
     import sys
-    import traceback
-    from datetime import date
+    import traceback # Import traceback for detailed error logging
     
     # Initialize variables to prevent unbound errors
     conn = None
     cur = None
-    
+
     try:
         print("=== SCAN_BIOMETRIC CALLED ===", file=sys.stderr)
         
         # Get biometric user ID from request
         biometric_data = request.json if request.is_json else request.form
-        user_id = biometric_data.get('user_id')
+        user_id = biometric_data.get('user_id') if biometric_data else None
         
         if not user_id:
             response_data = {'success': False, 'message': 'No biometric user ID provided'}
@@ -312,7 +311,7 @@ def scan_biometric():
         if not booking:
             response_data = {
                 'success': False,
-                'message': f'No active booking found for {employee_name} today.',
+                'message': f'{employee_name} (ID: {employee_id}) needs to book meals before consumption.',
                 'booking': {
                     'employee_name': employee_name,
                     'employee_id': employee_id,

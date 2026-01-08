@@ -44,14 +44,17 @@ def login():
         cur.execute("SELECT * FROM employees WHERE employee_id=%s AND role_id=1 AND is_active=1", (employee_id,))
         user = cur.fetchone()
         if user:
-            password_hash = hashlib.sha256(password.encode()).hexdigest()
-            if user['password_hash'] == password_hash or user['password_hash'] == password:
-                user_obj = User(user['id'], name=user['name'], email=user['email'], role='Employee')
-                login_user(user_obj)
-                flash('Login successful!', 'success')
-                return URL_Redirect_ConnClose(conn, url_for('employee.dashboard'))
+            if password:  # Check if password is not None or empty
+                password_hash = hashlib.sha256(password.encode()).hexdigest()
+                if user['password_hash'] == password_hash or user['password_hash'] == password:
+                    user_obj = User(user['id'], name=user['name'], email=user['email'], role='Employee')
+                    login_user(user_obj)
+                    flash('Login successful!', 'success')
+                    return URL_Redirect_ConnClose(conn, url_for('employee.dashboard'))
+                else:
+                    flash('Invalid password.', 'danger')
             else:
-                flash('Invalid password.', 'danger')
+                flash('Password is required.', 'danger')
         else:
             flash('Invalid employee ID or not an employee.', 'danger')
     cur.close()
@@ -222,12 +225,16 @@ def book_meal():
                 return URL_Redirect_ConnClose(conn, url_for('employee.book_meal'))
             meal_id = meal['id']
             employee_id = current_user.id
-            # Check for existing booking
-            # Check for existing booking for any meal on the same day
-            cur.execute("SELECT id FROM bookings WHERE employee_id=%s AND booking_date=%s AND status='Booked'", (employee_id, date_val))
-            existing_daily_booking = cur.fetchone()
-            if existing_daily_booking:
-                flash(f'You have already booked a meal for {date_val}. Only one meal booking is allowed per day.', 'warning')
+            # Check for existing booking for the same date and shift
+            cur.execute("SELECT id, status FROM bookings WHERE employee_id=%s AND booking_date=%s AND shift=%s", (employee_id, date_val, shift))
+            existing_booking = cur.fetchone()
+            if existing_booking:
+                if existing_booking['status'] == 'Booked':
+                    flash(f'You have already booked {shift} for {date_val}.', 'warning')
+                elif existing_booking['status'] == 'Consumed':
+                    flash(f'Your {shift} for {date_val} has already been consumed.', 'info')
+                elif existing_booking['status'] == 'Cancelled':
+                    flash(f'Your {shift} for {date_val} was cancelled.', 'info')
                 return URL_Redirect_ConnClose(conn, url_for('employee.book_meal'))
             # 
             cur.execute("SELECT location_id FROM employees WHERE id=%s", (employee_id,))
@@ -277,8 +284,22 @@ def book_meal():
                     conn.rollback()
                 flash('Error booking meal: ' + str(e), 'danger')
                 return URL_Redirect_ConnClose(conn, url_for('employee.book_meal'))
+        
+        # Check if user has already booked a meal for today
+        conn = get_db_connection(False)
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT b.*, m.name as meal_name, l.name as location_name
+            FROM bookings b
+            JOIN meals m ON b.meal_id = m.id
+            JOIN locations l ON b.location_id = l.id
+            WHERE b.employee_id = %s AND b.booking_date = %s AND b.status = 'Booked'
+            ORDER BY b.shift
+        """, (current_user.id, date.today()))
+        today_bookings = cur.fetchall()
+        
         qr_image_base64 = session.pop('last_booking_qr', None)
-        return render_template('employee/book.html', form=form, qr_image_base64=qr_image_base64, today=today)
+        return render_template('employee/book.html', form=form, qr_image_base64=qr_image_base64, today=today, today_bookings=today_bookings)
     finally:
         if cur:
             cur.close()

@@ -6,13 +6,23 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+connection = None
+cursor = None
+
+def safe_int(value):
+    """Helper function to safely convert database result to int"""
+    if value is None:
+        return 0
+    return int(value)
+
 try:
-    # Connect to database
+    # Connect to database using correct environment variable names
     connection = mysql.connector.connect(
-        host=os.getenv('DB_HOST', 'localhost'),
-        database=os.getenv('DB_NAME', 'food'),
-        user=os.getenv('DB_USER', 'root'),
-        password=os.getenv('DB_PASSWORD', '')
+        host=os.getenv('MYSQL_HOST', 'localhost'),
+        port=int(os.getenv('MYSQL_PORT', 3306)),
+        user=os.getenv('MYSQL_USER', 'root'),
+        password=os.getenv('MYSQL_PASSWORD', ''),
+        database=os.getenv('MYSQL_DB', 'food')
     )
     
     if connection.is_connected():
@@ -46,7 +56,8 @@ try:
         
         # Check for outsider records in vendors table
         cursor.execute("SELECT COUNT(*) FROM vendors WHERE purpose LIKE 'Outsider:%';")
-        outsider_count = cursor.fetchone()[0]
+        result = cursor.fetchone()
+        outsider_count = safe_int(result[0]) if result else 0
         print(f'Found {outsider_count} outsider records in vendors table')
         
         if outsider_count > 0:
@@ -74,7 +85,8 @@ except Error as e:
 except Exception as e:
     print(f'Error: {e}')
 finally:
-    if connection.is_connected():
-        cursor.close()
+    if connection and connection.is_connected():
+        if cursor:
+            cursor.close()
         connection.close()
         print('MySQL connection closed')
