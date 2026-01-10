@@ -59,19 +59,6 @@
     <button class="hamburger" id="sidebarToggle" aria-label="Toggle sidebar">
       <i class="bi bi-list"></i>
     </button>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="row justify-content-center">
-          <div class="col-12 col-md-10 col-lg-8">
-            {% for category, message in messages %}
-              <div class="alert alert-{{ 'info' if category == 'message' else category }} alert-dismissible fade show w-100" role="alert" id="flash-message">
-                {{ message }}
-              </div>
-            {% endfor %}
-          </div>
-        </div>
-      {% endif %}
-    {% endwith %}
     {% block main_content %}{% endblock %}
 </div>
 <style>
