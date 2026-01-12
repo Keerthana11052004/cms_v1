@@ -1,5 +1,5 @@
 import os
-from flask import Blueprint, render_template, redirect, url_for, request, flash, send_file, make_response, current_app, send_from_directory, abort
+from flask import Blueprint, render_template, redirect, url_for, request, flash, send_file, make_response, current_app, send_from_directory, abort, session
 from flask_login import login_required, login_user, logout_user, current_user
 from . import Curr_Proj_Name, mysql, User
 import hashlib
@@ -52,7 +52,7 @@ def login():
                 role = 'Admin' if user['role_id'] == 6 else 'Accounts'
                 user_obj = User(user['id'], name=user['name'], email=user['email'], role=role)
                 login_user(user_obj)
-                flash('Login successful!', 'success')
+                # Flash message will appear on dashboard
                 return redirect(url_for('admin.dashboard'))
             else:
                 flash('Invalid password.', 'danger')
@@ -65,12 +65,23 @@ def login():
 @admin_bp.route('/logout')
 def logout():
     logout_user()
-    flash('Logged out successfully.', 'info')
+    session['logout_message'] = 'Logged out successfully.'
+    # Clear dashboard visited flag so login message appears again on next login
+    session.pop('dashboard_visited', None)
     return redirect(url_for('index'))
 
 @admin_bp.route('/dashboard')
 @login_required
 def dashboard():
+    # Show login success message on first visit to dashboard after login
+    if not session.get('dashboard_visited'):
+        flash('Login successful!', 'success')
+        session['dashboard_visited'] = True
+    else:
+        # Reset the flag if we're navigating away and back to dashboard
+        if request.args.get('reset_visited'):
+            session['dashboard_visited'] = False
+    
     conn = get_db_connection()
     cur = conn.cursor()
     today = date.today()

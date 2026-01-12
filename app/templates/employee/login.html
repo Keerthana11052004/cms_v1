@@ -53,6 +53,21 @@
                 <!-- Login Form -->
                 <div class="col-12">
                     <h2 class="mb-4 text-center">👨‍💻 Employee Login</h2>
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                      {% if messages %}
+                        <div class="row justify-content-center">
+                          <div class="col-12">
+                            {% for category, message in messages %}
+                              {% if category != 'success' %}
+                              <div class="alert alert-{{ 'info' if category == 'message' else category }} alert-dismissible fade show w-100" role="alert" id="flash-message">
+                                {{ message }}
+                              </div>
+                              {% endif %}
+                            {% endfor %}
+                          </div>
+                        </div>
+                      {% endif %}
+                    {% endwith %}
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <div class="mb-3">

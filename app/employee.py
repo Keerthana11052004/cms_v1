@@ -49,7 +49,7 @@ def login():
                 if user['password_hash'] == password_hash or user['password_hash'] == password:
                     user_obj = User(user['id'], name=user['name'], email=user['email'], role='Employee')
                     login_user(user_obj)
-                    flash('Login successful!', 'success')
+                    # Flash message will appear on dashboard
                     return URL_Redirect_ConnClose(conn, url_for('employee.dashboard'))
                 else:
                     flash('Invalid password.', 'danger')
@@ -65,12 +65,23 @@ def login():
 def logout():
     from flask_login import logout_user
     logout_user()
-    flash('Logged out successfully.', 'info')
+    session['logout_message'] = 'Logged out successfully.'
+    # Clear dashboard visited flag so login message appears again on next login
+    session.pop('dashboard_visited', None)
     return redirect(url_for('index'))
 
 @employee_bp.route('/dashboard')
 @login_required
 def dashboard():
+    # Show login success message on first visit to dashboard after login
+    if not session.get('dashboard_visited'):
+        flash('Login successful!', 'success')
+        session['dashboard_visited'] = True
+    else:
+        # Reset the flag if we're navigating away and back to dashboard
+        if request.args.get('reset_visited'):
+            session['dashboard_visited'] = False
+    
     conn = get_db_connection()
     cur = conn.cursor()
     try:
@@ -251,9 +262,9 @@ def book_meal():
             try:
                 # Step 1: Create the booking record without the QR code to get the booking_id
                 cur.execute("""
-                    INSERT INTO bookings (employee_id, employee_id_str, meal_id, booking_date, shift, recurrence, location_id, status)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                """, (employee_id, emp_details['employee_id'], meal_id, date_val, shift, recurrence, location_id, 'Booked'))
+                    INSERT INTO bookings (employee_id, employee_id_str, meal_id, booking_date, shift, recurrence, location_id, booking_type, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (employee_id, emp_details['employee_id'], meal_id, date_val, shift, recurrence, location_id, 'App', 'Booked'))
                 
                 # Get the ID of the new booking
                 booking_id = cur.lastrowid

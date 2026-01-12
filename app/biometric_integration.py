@@ -20,7 +20,9 @@ class BiometricMealBooking:
         self.password = password
         self.timeout = timeout
         self.poll_interval = 10  # seconds
-        self.last_punch_time = None
+        # Initialize to start of today to catch today's punches but ignore older ones
+        today_start = datetime.combine(datetime.now().date(), time.min)
+        self.last_punch_time = today_start
         self.running = False
         self.zk = None
         self.conn = None
@@ -64,8 +66,15 @@ class BiometricMealBooking:
             if self.conn:
                 self.conn.disconnect()
                 self.logger.info("Disconnected from biometric device")
+                self.conn = None
         except Exception as e:
-            self.logger.error(f"Error disconnecting: {e}")
+            # Don't log connection reset errors as severe errors
+            if 'forcibly closed' in str(e) or '10054' in str(e):
+                self.logger.info("Biometric device connection already closed by remote host")
+            else:
+                self.logger.error(f"Error disconnecting: {e}")
+        finally:
+            self.conn = None
 
     def get_meal_type_by_time(self, punch_time):
         """Determine meal type based on punch time"""
@@ -146,9 +155,9 @@ class BiometricMealBooking:
                 
                 # Insert booking record
                 cur.execute("""
-                    INSERT INTO bookings (employee_id, employee_id_str, meal_id, booking_date, shift, location_id, status)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                """, (employee_db_id, str(user_id), meal_id, booking_date, meal_type, location_id, 'Booked'))
+                    INSERT INTO bookings (employee_id, employee_id_str, meal_id, booking_date, shift, location_id, booking_type, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """, (employee_db_id, str(user_id), meal_id, booking_date, meal_type, location_id, 'Biometric', 'Booked'))
                 
                 booking_id = cur.lastrowid
                 
@@ -225,7 +234,12 @@ class BiometricMealBooking:
                 time_module.sleep(self.poll_interval)
 
             except Exception as e:
-                self.logger.error(f"⚠️ Polling error: {e}")
+                error_msg = str(e)
+                if 'forcibly closed' in error_msg or '10054' in error_msg or 'connection lost' in error_msg.lower():
+                    self.logger.info(f"⚠️ Biometric device connection lost: {e}")
+                else:
+                    self.logger.error(f"⚠️ Polling error: {e}")
+                
                 self.disconnect_device()
                 time_module.sleep(5)  # Wait before reconnecting
 
@@ -253,6 +267,290 @@ class BiometricMealBooking:
 
 # Global instance for the application
 biometric_booking = BiometricMealBooking()
+
+
+class BiometricMealConsumption:
+    def __init__(self, device_ip='192.168.105.201', port=4370, password=0, timeout=60):
+        self.device_ip = device_ip
+        self.port = port
+        self.password = password
+        self.timeout = timeout
+        self.poll_interval = 10  # seconds
+        # Initialize to start of today to catch today's punches but ignore older ones
+        today_start = datetime.combine(datetime.now().date(), time.min)
+        self.last_punch_time = today_start
+        self.running = False
+        self.zk = None
+        self.conn = None
+        
+        # Setup logging
+        logging.basicConfig(level=logging.INFO)
+        self.logger = logging.getLogger(__name__ + '_consumption')
+
+    def connect_device(self):
+        """Connect to the ESSL MB160 device for consumption verification"""
+        if ZK is None:
+            self.logger.error("❌ ZK library not available. Please install pyzk.")
+            return False
+        
+        try:
+            self.zk = ZK(
+                self.device_ip,
+                port=self.port,
+                timeout=self.timeout,
+                password=self.password,
+                force_udp=False,
+                ommit_ping=False
+            )
+            
+            self.conn = self.zk.connect()
+            self.logger.info(f"✅ Connected to ESSL MB160 at {self.device_ip} for consumption verification")
+            
+            # Load users from device
+            users = self.conn.get_users()
+            self.user_map = {user.user_id: user.name for user in users}
+            self.logger.info(f"👤 Users Loaded: {len(users)} for consumption verification")
+            
+            return True
+        except Exception as e:
+            self.logger.error(f"❌ Connection failed: {e}")
+            return False
+
+    def disconnect_device(self):
+        """Disconnect from the biometric device"""
+        try:
+            if self.conn:
+                self.conn.disconnect()
+                self.logger.info("Disconnected from biometric consumption device")
+                self.conn = None
+        except Exception as e:
+            # Don't log connection reset errors as severe errors
+            if 'forcibly closed' in str(e) or '10054' in str(e):
+                self.logger.info("Biometric consumption device connection already closed by remote host")
+            else:
+                self.logger.error(f"Error disconnecting: {e}")
+        finally:
+            self.conn = None
+
+    def verify_consumption(self, user_id):
+        """Verify meal consumption for a user based on their biometric ID"""
+        conn_db = None
+        cur = None
+        
+        try:
+            conn_db = get_db_connection()
+            cur = conn_db.cursor()
+            
+            # First, check if employee exists in our system
+            cur.execute("SELECT id, name, employee_id FROM employees WHERE employee_id = %s", (str(user_id),))
+            employee = cur.fetchone()
+            
+            if not employee:
+                self.logger.warning(f"Employee with ID {user_id} not found in our system")
+                return {'success': False, 'message': f'Employee with biometric ID {user_id} not found in system.'}
+            
+            employee_db_id = employee['id']
+            employee_name = employee['name']
+            employee_id = employee['employee_id']
+            
+            # Find today's booking for this employee that is still 'Booked'
+            from datetime import date
+            today = date.today()
+            cur.execute("""
+                SELECT b.*, m.name as meal_name, l.name as location_name
+                FROM bookings b
+                JOIN meals m ON b.meal_id = m.id
+                JOIN locations l ON b.location_id = l.id
+                WHERE b.employee_id = %s 
+                AND b.booking_date = %s
+                AND b.status = 'Booked'
+                ORDER BY b.created_at DESC
+            """, (employee_db_id, today))
+            
+            booking = cur.fetchone()
+            
+            if not booking:
+                return {
+                    'success': False,
+                    'message': f'{employee_name} (ID: {employee_id}) needs to book meals before consumption.',
+                    'booking': {
+                        'employee_name': employee_name,
+                        'employee_id': employee_id,
+                        'date': today.strftime('%Y-%m-%d'),
+                        'status': 'No Booking'
+                    }
+                }
+            
+            # Check the booking status
+            status = booking['status']
+            if isinstance(status, bytes):
+                status = status.decode('utf-8')
+            
+            if status.strip() == 'Consumed':
+                # Format the consumed_at time for display
+                consumed_time = booking.get('consumed_at')
+                if consumed_time:
+                    if hasattr(consumed_time, 'strftime'):
+                        processed_time = consumed_time.strftime('%d/%m/%Y, %I:%M:%S %p')
+                    else:
+                        processed_time = str(consumed_time)
+                else:
+                    processed_time = 'Unknown'
+                
+                return {
+                    'success': False,
+                    'message': 'ℹ️ This meal has already been consumed.',
+                    'booking': {
+                        'employee_name': employee_name,
+                        'employee_id': employee_id,
+                        'unit': booking['location_name'],
+                        'date': booking['booking_date'].strftime('%Y-%m-%d'),
+                        'shift': booking['shift'],
+                        'status': status,
+                        'processed_at': processed_time
+                    }
+                }
+            
+            elif status.strip() != 'Booked':
+                return {
+                    'success': False,
+                    'message': 'Booking is not in a valid state for consumption.',
+                    'booking': {
+                        'employee_name': employee_name,
+                        'employee_id': employee_id,
+                        'unit': booking['location_name'],
+                        'date': booking['booking_date'].strftime('%Y-%m-%d'),
+                        'shift': booking['shift'],
+                        'status': booking['status']
+                    }
+                }
+            
+            # Update booking status to consumed
+            cur.execute("""
+                UPDATE bookings 
+                SET status = 'Consumed', consumed_at = NOW() 
+                WHERE id = %s
+            """, (booking['id'],))
+            
+            # Log the consumption
+            cur.execute("""
+                INSERT INTO meal_consumption_log (booking_id, employee_id, meal_id, location_id, staff_id)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (booking['id'], employee_db_id, booking['meal_id'], booking['location_id'], None))  # Using None as staff_id when called from polling service
+            
+            conn_db.commit()
+            
+            return {
+                'success': True,
+                'message': f'✅ Meal Consumed Successfully for {employee_name} (ID: {employee_id})',
+                'booking': {
+                    'employee_name': employee_name,
+                    'employee_id': employee_id,
+                    'unit': booking['location_name'],
+                    'date': booking['booking_date'].strftime('%Y-%m-%d'),
+                    'shift': booking['shift'],
+                    'status': 'Consumed'
+                }
+            }
+        
+        except Exception as e:
+            self.logger.error(f"Error processing meal consumption: {e}")
+            if conn_db:
+                conn_db.rollback()
+            return {'success': False, 'message': f'Error processing meal: {str(e)}'}
+        finally:
+            if cur:
+                cur.close()
+            if conn_db:
+                conn_db.close()
+
+    def start_service(self):
+        """Start the biometric consumption service"""
+        if ZK is None:
+            self.logger.error("❌ Cannot start biometric consumption service: ZK library not available. Please install pyzk.")
+            return False
+        
+        if not self.connect_device():
+            return False
+            
+        self.running = True
+        self.logger.info("🔄 Biometric consumption service ready")
+        return True
+
+    def poll_biometric_device(self):
+        """Poll the biometric consumption device for new punches to mark as consumed"""
+        while self.running:
+            try:
+                if not self.conn:
+                    if not self.connect_device():
+                        time_module.sleep(10)  # Wait 10 seconds before retrying
+                        continue
+
+                logs = self.conn.get_attendance() if self.conn else []
+
+                for log in logs:
+                    punch_time = log.timestamp
+
+                    # Process only NEW punches
+                    if self.last_punch_time is None or punch_time > self.last_punch_time:
+                        user_id = log.user_id
+                        name = self.user_map.get(user_id, "Unknown")
+
+                        self.logger.info(
+                            f"🟢 PUNCH DETECTED | "
+                            f"UserID: {user_id} | "
+                            f"Name: {name} | "
+                            f"Time: {punch_time}"
+                        )
+
+                        # Verify meal consumption based on punch
+                        result = self.verify_consumption(user_id)
+                        
+                        if result['success']:
+                            self.logger.info(f"🍽️ Meal consumed successfully for {name} (ID: {user_id})")
+                        else:
+                            # Log the reason for failure (e.g., no booking, already consumed, etc.)
+                            self.logger.warning(f"❌ Failed to process consumption for {name} (ID: {user_id}): {result.get('message', 'Unknown error')}")
+
+                        self.last_punch_time = punch_time
+
+                time_module.sleep(10)  # Poll every 10 seconds
+
+            except Exception as e:
+                error_msg = str(e)
+                if 'forcibly closed' in error_msg or '10054' in error_msg or 'connection lost' in error_msg.lower():
+                    self.logger.info(f"⚠️ Biometric consumption device connection lost: {e}")
+                else:
+                    self.logger.error(f"⚠️ Consumption polling error: {e}")
+                
+                self.disconnect_device()
+                time_module.sleep(5)  # Wait before reconnecting
+
+    def start_polling(self):
+        """Start polling the biometric consumption device in a separate thread"""
+        if ZK is None:
+            self.logger.error("❌ Cannot start biometric consumption polling: ZK library not available. Please install pyzk.")
+            return False
+        
+        if not self.connect_device():
+            return False
+            
+        self.running = True
+        self.poll_thread = threading.Thread(target=self.poll_biometric_device)
+        self.poll_thread.daemon = True
+        self.poll_thread.start()
+        self.logger.info("🔄 Biometric consumption polling started")
+        return True
+
+    def stop_service(self):
+        """Stop the biometric consumption service"""
+        self.running = False
+        self.disconnect_device()
+        self.logger.info("🛑 Biometric consumption service stopped")
+
+
+# Global instance for consumption verification
+biometric_consumption = BiometricMealConsumption()
 
 def start_biometric_service():
     """Start the biometric service"""

@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify
+from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, session
 from flask_login import login_required, login_user, logout_user, current_user
 from .forms import LoginForm
 from .utils import decode_qr_code
@@ -30,7 +30,7 @@ def login():
                 role = 'Supervisor' if user['role_id'] == 3 else 'Staff'
                 user_obj = User(user['id'], name=user['name'], email=user['email'], role=role)
                 login_user(user_obj)
-                flash('Login successful!', 'success')
+                # Flash message will appear on dashboard
                 return URL_Redirect_ConnClose(conn, url_for('staff.dashboard'))
             else:
                 flash('Invalid password.', 'danger')
@@ -44,7 +44,9 @@ def login():
 def logout():
     print("[DEBUG] Logout function called.", file=sys.stderr)
     logout_user()
-    flash('Logged out successfully.', 'info')
+    session['logout_message'] = 'Logged out successfully.'
+    # Clear dashboard visited flag so login message appears again on next login
+    session.pop('dashboard_visited', None)
     return redirect(url_for('index'))
 
 @staff_bp.route('/qr_scanner')
@@ -224,8 +226,8 @@ def create_test_booking():
         
         # Create test booking
         cur.execute("""
-            INSERT INTO bookings (employee_id, employee_id_str, meal_id, booking_date, shift, location_id, status)
-            SELECT e.id, e.employee_id, m.id, %s, 'Lunch', l.id, 'Booked'
+            INSERT INTO bookings (employee_id, employee_id_str, meal_id, booking_date, shift, location_id, booking_type, status)
+            SELECT e.id, e.employee_id, m.id, %s, 'Lunch', l.id, 'App', 'Booked'
             FROM employees e, meals m, locations l
             WHERE e.employee_id = 'EMP001' AND m.name = 'Lunch' AND l.name = 'Unit 1'
         """, (today,))
@@ -263,7 +265,7 @@ def scan_biometric():
     # Initialize variables to prevent unbound errors
     conn = None
     cur = None
-
+    
     try:
         print("=== SCAN_BIOMETRIC CALLED ===", file=sys.stderr)
         
@@ -379,10 +381,11 @@ def scan_biometric():
             """, (booking['id'],))
             
             # Log the consumption
+            staff_id_to_use = getattr(current_user, 'id', None) or employee_db_id
             cur.execute("""
                 INSERT INTO meal_consumption_log (booking_id, employee_id, meal_id, location_id, staff_id)
                 VALUES (%s, %s, %s, %s, %s)
-            """, (booking['id'], employee_db_id, booking['meal_id'], booking['location_id'], current_user.id))
+            """, (booking['id'], employee_db_id, booking['meal_id'], booking['location_id'], staff_id_to_use))
             
             conn.commit()
             
@@ -420,6 +423,59 @@ def scan_biometric():
         print(f"[DEBUG] Full traceback: {tb}", file=sys.stderr)
         return jsonify(response_data), 500
     
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+
+@staff_bp.route('/scan_biometric_consumption', methods=['POST'])
+@login_required
+def scan_biometric_consumption():
+    from . import mysql
+    import sys
+    import traceback
+    from .biometric_integration import biometric_consumption
+    from datetime import date
+    
+    # Initialize variables to prevent unbound errors
+    conn = None
+    cur = None
+    
+    try:
+        print("=== SCAN_BIOMETRIC_CONSUMPTION CALLED ===", file=sys.stderr)
+        
+        # Get biometric user ID from request
+        biometric_data = request.json if request.is_json else request.form
+        user_id = biometric_data.get('user_id') if biometric_data else None
+        
+        if not user_id:
+            response_data = {'success': False, 'message': 'No biometric user ID provided'}
+            print(f"[DEBUG] JSON response: {response_data}", file=sys.stderr)
+            return jsonify(response_data)
+        
+        # Use the biometric consumption service to verify and process the meal consumption
+        result = biometric_consumption.verify_consumption(user_id)
+        print(f"[DEBUG] Consumption verification result: {result}", file=sys.stderr)
+        
+        # Update the result to indicate it came from biometric consumption verification
+        if 'booking' in result:
+            result['booking']['verification_method'] = 'biometric_consumption'
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        tb = traceback.format_exc()
+        response_data = {
+            'success': False,
+            'message': f'An unexpected error occurred: {str(e)}',
+            'trace': tb
+        }
+        print(f"[DEBUG] UNEXPECTED ERROR in consumption verification: {str(e)}", file=sys.stderr)
+        print(f"[DEBUG] Full traceback: {tb}", file=sys.stderr)
+        return jsonify(response_data), 500
+
     finally:
         if cur:
             cur.close()
@@ -613,6 +669,15 @@ def scan_qr():
 @staff_bp.route('/dashboard')
 @login_required
 def dashboard():
+    # Show login success message on first visit to dashboard after login
+    if not session.get('dashboard_visited'):
+        flash('Login successful!', 'success')
+        session['dashboard_visited'] = True
+    else:
+        # Reset the flag if we're navigating away and back to dashboard
+        if request.args.get('reset_visited'):
+            session['dashboard_visited'] = False
+    
     from . import mysql
     from datetime import date
     conn = get_db_connection()

@@ -1,19 +1,6 @@
 {% extends 'base_logged_in.html' %}
 {% block title %}Employee Dashboard{% endblock %}
 {% block main_content %}
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <div class="row justify-content-center">
-      <div class="col-12 col-md-10 col-lg-8">
-        {% for category, message in messages %}
-          <div class="alert alert-{{ 'info' if category == 'message' else category }} alert-dismissible fade show w-100" role="alert" id="flash-message">
-            {{ message }}
-          </div>
-        {% endfor %}
-      </div>
-    </div>
-  {% endif %}
-{% endwith %}
 <style>
   .back-btn {
     position: fixed;
@@ -98,6 +85,11 @@
   .dashboard-card .card-title {
     font-size: 1.3rem;
     font-weight: 700;
+  }
+  .chart-container {
+    position: relative;
+    height: 300px;
+    max-width: 100%;
   }
 
   /* Mobile Responsiveness */
@@ -231,7 +223,7 @@
     }
   }
 </style>
-<button class="back-btn" id="logoutBtn" title="{{ _('Logout') }}">
+<button class="back-btn" id="logoutBtn" data-href="{{ url_for('employee.logout') }}" title="{{ _('Logout') }}">
   <i class="bi bi-box-arrow-right"></i>
 </button>
 <div class="container py-4" style="max-width: 1200px; min-height: 100vh;">
@@ -253,31 +245,6 @@
               </div>
               <div class="col-lg-4 col-md-6 col-sm-12">
                 <a href="{{ url_for('employee.profile') }}" class="btn btn-profile w-100">Profile</a>
-              </div>
-            </div>
-            <!-- Unit Selection Modal -->
-            <div class="modal fade" id="unitSelectionModal" tabindex="-1" aria-labelledby="unitSelectionModalLabel" aria-hidden="true">
-              <div class="modal-dialog">
-                <div class="modal-content">
-                  <div class="modal-header">
-                    <h5 class="modal-title" id="unitSelectionModalLabel">Select Your Unit</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                  </div>
-                  <div class="modal-body">
-                    <div class="mb-3">
-                      <label for="modalUnitSelect" class="form-label">Choose Unit:</label>
-                      <select class="form-select" id="modalUnitSelect">
-                        {% for loc in locations %}
-                          <option value="{{ loc.id | default('') }}" {% if session.get('selected_unit_id') == loc.id %}selected{% endif %}>{{ loc.name | default('') }}</option>
-                        {% endfor %}
-                      </select>
-                    </div>
-                  </div>
-                  <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" id="modalSelectUnitBtn">Select Unit</button>
-                  </div>
-                </div>
               </div>
             </div>
             <div class="row">
@@ -344,50 +311,14 @@
    </div>
  </div>
  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
  <script>
   document.addEventListener('DOMContentLoaded', function() {
-    var unitSelectionModal = document.getElementById('unitSelectionModal');
-    var modalSelectUnitBtn = document.getElementById('modalSelectUnitBtn');
-    var modalUnitSelect = document.getElementById('modalUnitSelect');
-    var selectedUnitNameDisplay = document.getElementById('selectedUnitNameDisplay');
     var logoutBtn = document.getElementById('logoutBtn');
-
-    if (modalSelectUnitBtn) {
-      modalSelectUnitBtn.addEventListener('click', function() {
-        var selectedUnitId = modalUnitSelect.value;
-        var selectedUnitName = modalUnitSelect.options[modalUnitSelect.selectedIndex].text;
-
-        fetch('/cms/employee/select_unit', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: 'unit_id=' + selectedUnitId
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.status === 'success') {
-            selectedUnitNameDisplay.textContent = selectedUnitName;
-            var modal = bootstrap.Modal.getInstance(unitSelectionModal);
-            if (modal) {
-              modal.hide();
-            }
-            // Reload the page to reflect the new menu based on the selected unit
-            window.location.reload();
-          } else {
-            alert('Error: ' + data.message);
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          alert('An error occurred while selecting the unit.');
-        });
-      });
-    }
 
     if (logoutBtn) {
       logoutBtn.addEventListener('click', function() {
-        window.location.href = "{{ url_for('employee.logout') }}";
+        window.location.href = this.getAttribute('data-href');
       });
     }
   });

@@ -133,12 +133,19 @@ def create_app():
     app.register_blueprint(staff_bp, url_prefix='/cms/staff')
     app.register_blueprint(admin_bp, url_prefix='/cms/admin')
 
-    # Start biometric service after app initialization
+    # Start biometric services after app initialization
     try:
         start_biometric_service()
         print("✅ Biometric service started successfully")
     except Exception as e:
         print(f"⚠️ Could not start biometric service: {e}")
+    
+    try:
+        from .biometric_integration import biometric_consumption
+        biometric_consumption.start_polling()
+        print("✅ Biometric consumption service started successfully")
+    except Exception as e:
+        print(f"⚠️ Could not start biometric consumption service: {e}")
 
     @app.errorhandler(404)
     def not_found_error(error):
@@ -179,7 +186,11 @@ def create_app():
     @app.route('/')
     def index():
         # Redirect root requests to the CMS home page
-        from flask import redirect, url_for
+        from flask import redirect, url_for, flash, session
+        # Check for logout message in session
+        logout_msg = session.pop('logout_message', None)
+        if logout_msg:
+            flash(logout_msg, 'info')
         return redirect(url_for('cms.cms_home'))
 
     return app
