@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash,
 from flask_login import login_required, login_user, logout_user, current_user
 from . import Curr_Proj_Name, mysql, User
 import hashlib
-from .forms import LoginForm, AddUserForm, VendorForm, OutsiderMealVendorForm, AddMenuForm
+from .forms import LoginForm, AddUserForm, EditUserForm, VendorForm, OutsiderMealVendorForm, AddMenuForm
 import csv
 import io
 import pandas as pd
@@ -15,9 +15,7 @@ from .db_config import get_db_connection
 
 admin_bp = Blueprint('admin', __name__)
 
-admin_bp = Blueprint('admin', __name__)
-
-admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+# Register the blueprint with url_prefix in app/__init__.py, so no prefix here
 
 # These will be initialized after the app context is available
 UPLOAD_FOLDER = None
@@ -1779,7 +1777,7 @@ def add_user():
 
     # Build the query to fetch users
     query = '''
-        SELECT e.employee_id, e.name AS employee, d.name AS department, l.name AS location, 
+        SELECT e.id, e.employee_id, e.name AS employee, d.name AS department, l.name AS location, 
                r.name AS role, e.is_active, e.created_at
         FROM employees e
         LEFT JOIN departments d ON e.department_id = d.id
@@ -1929,6 +1927,136 @@ def add_user():
                          selected_is_active=is_active_filter,
                          pagination=pagination,
                          form=form)
+
+@admin_bp.route('/edit_user/<int:user_id>', methods=['GET', 'POST'])
+@login_required
+def edit_user(user_id):
+    if current_user.role not in ['Admin', 'Accounts']:
+        flash('Access denied.', 'danger')
+        return redirect(url_for('admin.dashboard'))
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    try:
+        # Get the user to edit
+        cur.execute('''
+            SELECT e.id, e.employee_id, e.name, e.email, e.department_id, 
+                   e.location_id, e.role_id, e.is_active
+            FROM employees e
+            WHERE e.id = %s
+        ''', (user_id,))
+        user = cur.fetchone()
+        
+        if not user:
+            flash('User not found.', 'danger')
+            return redirect(url_for('admin.add_user'))
+        
+        # Create form and populate with user data
+        form = EditUserForm()
+        
+        # Populate select field choices
+        if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+            cur.execute('SELECT id, name FROM locations')
+            locations = cur.fetchall()
+            form.location_id.choices = [(l['id'], l['name']) for l in locations]
+        elif current_user.role == 'Admin' and current_user.location:
+            cur.execute('SELECT id, name FROM locations WHERE name = %s', (current_user.location,))
+            locations = cur.fetchall()
+            if not locations:
+                flash('Error: Your assigned unit location was not found.', 'danger')
+                return redirect(url_for('admin.add_user'))
+            form.location_id.choices = [(l['id'], l['name']) for l in locations]
+        else:
+            cur.execute('SELECT id, name FROM locations')
+            locations = cur.fetchall()
+            form.location_id.choices = [(l['id'], l['name']) for l in locations]
+
+        cur.execute('SELECT id, name FROM roles WHERE name IN ("Admin", "Employee", "Staff", "Accounts")')
+        roles = cur.fetchall()
+        
+        if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+            form.role_id.choices = [(r['id'], r['name']) for r in roles]
+        elif current_user.role == 'Admin' and current_user.location:
+            form.role_id.choices = [(r['id'], r['name']) for r in roles if r['name'] in ["Employee", "Staff"]]
+        else:
+            form.role_id.choices = [(r['id'], r['name']) for r in roles]
+
+        cur.execute('SELECT id, name FROM departments WHERE name != "Admin"')
+        departments = cur.fetchall()
+        form.department_id.choices = [(d['id'], d['name']) for d in departments]
+        
+        if request.method == 'GET':
+            # Pre-populate form with user data for GET request
+            form.employee_id.data = user['employee_id']
+            form.name.data = user['name']
+            form.email.data = user['email']
+            form.department_id.data = user['department_id']
+            form.location_id.data = user['location_id']
+            form.role_id.data = user['role_id']
+            form.is_active.data = bool(user['is_active'])
+        
+        if form.validate_on_submit():
+            employee_id = form.employee_id.data
+            name = form.name.data
+            email = form.email.data
+            department_id = form.department_id.data
+            location_id = form.location_id.data
+            role_id = form.role_id.data
+            is_active = 1 if form.is_active.data else 0
+            
+            # Enforce location for unit admins
+            if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+                pass
+            elif current_user.role == 'Admin' and current_user.location:
+                cur.execute('SELECT id FROM locations WHERE name = %s', (current_user.location,))
+                allowed_location_id = cur.fetchone()
+                if not allowed_location_id or allowed_location_id['id'] != location_id:
+                    flash('You can only edit users in your assigned unit.', 'danger')
+                    return redirect(url_for('admin.edit_user', user_id=user_id))
+                cur.execute('SELECT name FROM roles WHERE id = %s', (role_id,))
+                selected_role_name = cur.fetchone()['name']
+                if selected_role_name not in ["Employee", "Staff"]:
+                    flash('You can only edit users with Employee or Staff roles.', 'danger')
+                    return redirect(url_for('admin.edit_user', user_id=user_id))
+            
+            # Check if employee_id is being changed and if the new ID already exists
+            cur.execute("SELECT id FROM employees WHERE employee_id = %s AND id != %s", (employee_id, user_id))
+            existing_user = cur.fetchone()
+            
+            if existing_user:
+                flash(f'Error: Employee ID "{employee_id}" already exists. Please use a different Employee ID.', 'danger')
+                return redirect(url_for('admin.edit_user', user_id=user_id))
+            
+            # Update user information
+            update_query = '''
+                UPDATE employees 
+                SET employee_id = %s, name = %s, email = %s, 
+                    department_id = %s, location_id = %s, 
+                    role_id = %s, is_active = %s
+                WHERE id = %s
+            '''
+            cur.execute(update_query, (employee_id, name, email, department_id, location_id, role_id, is_active, user_id))
+            
+            # If password is provided, update it
+            if form.password.data:
+                password_hash = hashlib.sha256(form.password.data.encode()).hexdigest()
+                cur.execute("UPDATE employees SET password_hash = %s WHERE id = %s", (password_hash, user_id))
+            
+            conn.commit()
+            flash('User updated successfully!', 'success')
+            return redirect(url_for('admin.add_user'))
+        
+        return render_template('admin/edit_user.html', form=form, user=user)
+    
+    except Exception as e:
+        conn.rollback()
+        flash('Error updating user: ' + str(e), 'danger')
+        return redirect(url_for('admin.add_user'))
+    
+    finally:
+        cur.close()
+        conn.close()
 
 @admin_bp.route('/debug_routes')
 def debug_routes():
@@ -2244,3 +2372,378 @@ def uploaded_file(filename):
         import traceback
         traceback.print_exc()
         abort(500)
+
+
+@admin_bp.route('/plant_access_dashboard')
+@login_required
+def plant_access_dashboard():
+    if current_user.role != 'Admin':
+        flash('Access denied.', 'danger')
+        return redirect(url_for('admin.dashboard'))
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    try:
+        # Get all locations for plant-wise access
+        cur.execute("SELECT * FROM locations ORDER BY name")
+        locations = cur.fetchall()
+        
+        # For unit-specific admin, only show their unit
+        if current_user.location:
+            locations = [loc for loc in locations if loc['name'] == current_user.location]
+        
+        # Get booking statistics by location
+        location_stats = []
+        for location in locations:
+            cur.execute("""
+                SELECT 
+                    COUNT(*) as total_bookings,
+                    SUM(CASE WHEN status = 'Booked' THEN 1 ELSE 0 END) as pending_consumption,
+                    SUM(CASE WHEN status = 'Consumed' THEN 1 ELSE 0 END) as consumed,
+                    SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END) as cancelled
+                FROM bookings b
+                JOIN locations l ON b.location_id = l.id
+                WHERE l.name = %s AND booking_date = CURDATE()
+            """, (location['name'],))
+            stats = cur.fetchone()
+            location_stats.append({
+                'location': location,
+                'stats': stats
+            })
+        
+        return render_template('admin/plant_access_dashboard.html', 
+                               location_stats=location_stats,
+                               current_location=current_user.location,
+                               csrf_token=generate_csrf())
+    
+    except Exception as e:
+        flash(f'Error loading plant access dashboard: {str(e)}', 'danger')
+        return redirect(url_for('admin.dashboard'))
+    
+    finally:
+        cur.close()
+        conn.close()
+
+
+@admin_bp.route('/manage_missed_tokens')
+@login_required
+def manage_missed_tokens():
+    if current_user.role != 'Admin':
+        flash('Access denied.', 'danger')
+        return redirect(url_for('admin.dashboard'))
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    # Get form parameters
+    location_filter = request.args.get('location', '')
+    date_filter = request.args.get('date', '')
+    search_employee = request.args.get('employee', '')
+    
+    try:
+        # Build query for missed bookings
+        query_parts = [
+            "b.id, b.employee_id, b.booking_date, b.shift, b.status,",
+            "e.name as employee_name, l.name as location_name"
+        ]
+        base_query = """ 
+            FROM bookings b
+            JOIN employees e ON b.employee_id = e.id
+            JOIN locations l ON b.location_id = l.id
+        """
+        
+        params = []
+        conditions = ["b.booking_date <= CURDATE() AND b.status != 'Consumed'"]
+        
+        # Apply filters
+        if location_filter:
+            conditions.append("l.name = %s")
+            params.append(location_filter)
+        elif current_user.location:  # Unit-specific admin
+            conditions.append("l.name = %s")
+            params.append(current_user.location)
+            
+        if date_filter:
+            conditions.append("b.booking_date = %s")
+            params.append(date_filter)
+        
+        if search_employee:
+            conditions.append("(e.name LIKE %s OR e.employee_id LIKE %s)")
+            params.extend([f'%{search_employee}%', f'%{search_employee}%'])
+        
+        if conditions:
+            base_query += " WHERE " + " AND ".join(conditions)
+        
+        # Get missed bookings
+        full_query = "SELECT " + " ".join(query_parts) + base_query + " ORDER BY b.booking_date DESC, b.shift, e.name"
+        cur.execute(full_query, params)
+        missed_bookings = cur.fetchall()
+        
+        # Get all locations for filter dropdown
+        cur.execute("SELECT * FROM locations ORDER BY name")
+        locations = cur.fetchall()
+        
+        # Get employees for manual booking
+        if current_user.location:
+            # Unit-specific admin - only show employees from their location
+            cur.execute("""SELECT e.id, e.employee_id, e.name, d.name as department_name, l.name as location_name
+                          FROM employees e
+                          JOIN departments d ON e.department_id = d.id
+                          JOIN locations l ON e.location_id = l.id
+                          WHERE e.is_active = 1 AND l.name = %s
+                          ORDER BY e.name""", (current_user.location,))
+        else:
+            # Master admin - show all employees
+            cur.execute("""SELECT e.id, e.employee_id, e.name, d.name as department_name, l.name as location_name
+                          FROM employees e
+                          JOIN departments d ON e.department_id = d.id
+                          JOIN locations l ON e.location_id = l.id
+                          WHERE e.is_active = 1
+                          ORDER BY e.name""")
+        employees = cur.fetchall()
+        
+        # Get available meals
+        cur.execute("SELECT * FROM meals ORDER BY name")
+        meals = cur.fetchall()
+        
+        return render_template('admin/manage_missed_tokens.html',
+                               missed_bookings=missed_bookings,
+                               locations=locations,
+                               employees=employees,
+                               meals=meals,
+                               current_location=current_user.location,
+                               filters={
+                                   'location': location_filter,
+                                   'date': date_filter,
+                                   'employee': search_employee
+                               },
+                               csrf_token=generate_csrf())
+    
+    except Exception as e:
+        flash(f'Error loading missed tokens page: {str(e)}', 'danger')
+        return redirect(url_for('admin.dashboard'))
+    
+    finally:
+        cur.close()
+        conn.close()
+
+
+@admin_bp.route('/issue_missed_token/<int:booking_id>', methods=['POST'])
+@login_required
+def issue_missed_token(booking_id):
+    if current_user.role != 'Admin':
+        return {'success': False, 'message': 'Access denied.'}, 403
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    try:
+        # Get the booking details
+        cur.execute("""
+            SELECT b.*, e.employee_id as emp_id, m.name as meal_name
+            FROM bookings b
+            JOIN employees e ON b.employee_id = e.id
+            JOIN meals m ON b.meal_id = m.id
+            WHERE b.id = %s
+        """, (booking_id,))
+        booking = cur.fetchone()
+        
+        if not booking:
+            return {'success': False, 'message': 'Booking not found.'}, 404
+        
+        # Check if user has permission for this location
+        cur.execute("SELECT name FROM locations WHERE id = %s", (booking['location_id'],))
+        location = cur.fetchone()
+        if current_user.location and location['name'] != current_user.location:
+            return {'success': False, 'message': 'Access denied for this location.'}, 403
+        
+        # Update booking status to consumed
+        cur.execute("""
+            UPDATE bookings 
+            SET status = 'Consumed', consumed_at = NOW() 
+            WHERE id = %s
+        """, (booking_id,))
+        
+        # Log the consumption
+        cur.execute("""
+            INSERT INTO meal_consumption_log (booking_id, employee_id, meal_id, location_id, staff_id)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (
+            booking_id,
+            booking['employee_id'],
+            booking['meal_id'],
+            booking['location_id'],
+            current_user.id  # Admin who issued the token
+        ))
+        
+        conn.commit()
+        
+        return {
+            'success': True, 
+            'message': f'Missed token issued successfully for {booking["emp_id"]} - {booking["shift"]} on {booking["booking_date"]}'
+        }
+    
+    except Exception as e:
+        conn.rollback()
+        return {'success': False, 'message': f'Error issuing missed token: {str(e)}'}
+    
+    finally:
+        cur.close()
+        conn.close()
+
+
+@admin_bp.route('/manual_book_meal', methods=['POST'])
+@login_required
+def manual_book_meal():
+    if current_user.role != 'Admin':
+        return {'success': False, 'message': 'Access denied.'}, 403
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    try:
+        employee_id = request.form.get('employee_id')
+        meal_id = request.form.get('meal_id')
+        booking_date = request.form.get('booking_date')
+        shift = request.form.get('shift')
+        location_id = request.form.get('location_id')
+        
+        # Validate inputs
+        if not all([employee_id, meal_id, booking_date, shift, location_id]):
+            return {'success': False, 'message': 'All fields are required.'}, 400
+        
+        # Verify employee exists and get their details
+        cur.execute("SELECT * FROM employees WHERE id = %s", (employee_id,))
+        employee = cur.fetchone()
+        if not employee:
+            return {'success': False, 'message': 'Employee not found.'}, 404
+        
+        # Verify meal exists
+        cur.execute("SELECT * FROM meals WHERE id = %s", (meal_id,))
+        meal = cur.fetchone()
+        if not meal:
+            return {'success': False, 'message': 'Meal not found.'}, 404
+        
+        # Verify location exists
+        cur.execute("SELECT * FROM locations WHERE id = %s", (location_id,))
+        location = cur.fetchone()
+        if not location:
+            return {'success': False, 'message': 'Location not found.'}, 404
+        
+        # Check if user has permission for this location
+        if current_user.location and location['name'] != current_user.location:
+            return {'success': False, 'message': 'Access denied for this location.'}, 403
+        
+        # Check if booking already exists for this employee, date, and shift
+        cur.execute("""
+            SELECT id FROM bookings 
+            WHERE employee_id = %s AND booking_date = %s AND shift = %s
+        """, (employee_id, booking_date, shift))
+        existing_booking = cur.fetchone()
+        if existing_booking:
+            return {'success': False, 'message': f'Booking already exists for {employee["name"]} on {booking_date} for {shift}.'}, 400
+        
+        # Create the new booking
+        cur.execute("""
+            INSERT INTO bookings (employee_id, meal_id, booking_date, shift, status, location_id, booking_type)
+            VALUES (%s, %s, %s, %s, 'Booked', %s, 'Manual')
+        """, (employee_id, meal_id, booking_date, shift, location_id))
+        
+        booking_id = cur.lastrowid
+        
+        conn.commit()
+        
+        # Get employee and location names for the response
+        cur.execute("SELECT name FROM locations WHERE id = %s", (location_id,))
+        location_name = cur.fetchone()['name']
+        
+        return {
+            'success': True, 
+            'message': f'Meal booked successfully for {employee["name"]} (ID: {employee["employee_id"]}) for {shift} on {booking_date} at {location_name}',
+            'booking_id': booking_id
+        }
+    
+    except Exception as e:
+        conn.rollback()
+        return {'success': False, 'message': f'Error booking meal: {str(e)}'}
+    
+    finally:
+        cur.close()
+        conn.close()
+
+
+@admin_bp.route('/transfer_booking_unit', methods=['POST'])
+@login_required
+def transfer_booking_unit():
+    if current_user.role != 'Admin':
+        return {'success': False, 'message': 'Access denied.'}, 403
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    try:
+        booking_id = request.form.get('booking_id')
+        new_location_id = request.form.get('new_location_id')
+        
+        if not all([booking_id, new_location_id]):
+            return {'success': False, 'message': 'Booking ID and new location are required.'}, 400
+        
+        # Get the booking details
+        cur.execute("""
+            SELECT b.*, e.name as employee_name, l.name as location_name
+            FROM bookings b
+            JOIN employees e ON b.employee_id = e.id
+            JOIN locations l ON b.location_id = l.id
+            WHERE b.id = %s
+        """, (booking_id,))
+        booking = cur.fetchone()
+        
+        if not booking:
+            return {'success': False, 'message': 'Booking not found.'}, 404
+        
+        # Verify new location exists
+        cur.execute("SELECT * FROM locations WHERE id = %s", (new_location_id,))
+        new_location = cur.fetchone()
+        if not new_location:
+            return {'success': False, 'message': 'New location not found.'}, 404
+        
+        # Check if user has permission for the new location
+        if current_user.location and new_location['name'] != current_user.location:
+            return {'success': False, 'message': 'Access denied for the target location.'}, 403
+        
+        # Check if a booking already exists for this employee, date, and shift at the new location
+        cur.execute("""
+            SELECT id FROM bookings
+            WHERE employee_id = %s AND booking_date = %s AND shift = %s AND location_id = %s
+        """, (booking['employee_id'], booking['booking_date'], booking['shift'], new_location_id))
+        existing_booking = cur.fetchone()
+        if existing_booking:
+            return {'success': False, 'message': f"Booking already exists for {booking['employee_name']} at {new_location['name']} for {booking['shift']} on {booking['booking_date']}"}, 400
+        
+        # Update the booking to the new location
+        cur.execute("""
+            UPDATE bookings
+            SET location_id = %s
+            WHERE id = %s
+        """, (new_location_id, booking_id))
+        
+        conn.commit()
+        
+        # Get location names for the response
+        cur.execute("SELECT name FROM locations WHERE id = %s", (new_location_id,))
+        new_location_name = cur.fetchone()['name']
+        
+        return {
+            'success': True, 
+            'message': f"Booking successfully transferred for {booking['employee_name']} from {booking['location_name']} to {new_location_name} for {booking['shift']} on {booking['booking_date']}"
+        }
+    
+    except Exception as e:
+        conn.rollback()
+        return {'success': False, 'message': f"Error transferring booking: {str(e)}"}
+    
+    finally:
+        cur.close()
+        conn.close()
+

@@ -22,6 +22,8 @@
             <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.add_user') }}"><span class="menu-icon"><i class="bi bi-person-plus"></i></span><span class="menu-label">Add User</span></a></li>
             <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.vendor_report_unit_wise') }}"><span class="menu-icon"><i class="bi bi-truck"></i></span><span class="menu-label">Outsider Meal Report</span></a></li>
             <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.vendor_report') }}"><span class="menu-icon"><i class="bi bi-file-text"></i></span><span class="menu-label">Vendor Report</span></a></li>
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.plant_access_dashboard') }}"><span class="menu-icon"><i class="bi bi-building"></i></span><span class="menu-label">Plant Access</span></a></li>
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.manage_missed_tokens') }}"><span class="menu-icon"><i class="bi bi-ticket-detailed"></i></span><span class="menu-label">Missed Tokens</span></a></li>
             <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.export') }}"><span class="menu-icon"><i class="bi bi-file-earmark-arrow-down"></i></span><span class="menu-label">Export</span></a></li>
             {% if current_user.employee_id == 'a001' %}
             <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.cost_subsidy') }}"><span class="menu-icon"><i class="bi bi-cash-coin"></i></span><span class="menu-label">Cost & Subsidy</span></a></li>

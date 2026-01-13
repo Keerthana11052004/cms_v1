@@ -455,8 +455,20 @@ def scan_biometric_consumption():
             print(f"[DEBUG] JSON response: {response_data}", file=sys.stderr)
             return jsonify(response_data)
         
+        # Check if staff has location assignment for cross-location consumption
+        staff_location_id = None
+        staff_id = current_user.id
+        
+        if current_user.location:
+            # Get the location ID for staff's assigned location
+            cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
+            staff_location = cur.fetchone()
+            if staff_location:
+                staff_location_id = staff_location['id']
+        
         # Use the biometric consumption service to verify and process the meal consumption
-        result = biometric_consumption.verify_consumption(user_id)
+        # Pass staff location and ID to allow cross-location consumption
+        result = biometric_consumption.verify_consumption(user_id, staff_location_id=staff_location_id, staff_id=staff_id)
         print(f"[DEBUG] Consumption verification result: {result}", file=sys.stderr)
         
         # Update the result to indicate it came from biometric consumption verification
@@ -567,6 +579,7 @@ def scan_qr():
         print(f"[DEBUG] Status type: {type(status)}", file=sys.stderr)
         print(f"[DEBUG] Status stripped: '{status.strip()}'", file=sys.stderr)
         print(f"[DEBUG] Full booking data: {booking_to_process}", file=sys.stderr)
+        print(f"[DEBUG] Current staff location: {current_user.location}", file=sys.stderr)
             
         if status.strip() == 'Consumed':
             # Format the consumed_at time for display
@@ -613,6 +626,26 @@ def scan_qr():
             conn.close()
             return jsonify(response_data)
         
+        # Check if staff can verify this booking at their location
+        # If staff has a location assignment, allow verification at their location regardless of booking location
+        booking_location_id = booking_to_process['location_id']
+        booking_location_name = booking_to_process['location_name']
+        staff_location_name = current_user.location
+        
+        # If staff has location assignment, use that location for verification
+        # This allows cross-location consumption where an employee booked at one location
+        # but consumes at another location where the staff is present
+        verification_location_id = booking_location_id
+        verification_location_name = booking_location_name
+        
+        if staff_location_name:
+            # Get the location ID for staff's assigned location
+            cur.execute("SELECT id FROM locations WHERE name = %s", (staff_location_name,))
+            staff_location = cur.fetchone()
+            if staff_location:
+                verification_location_id = staff_location['id']
+                verification_location_name = staff_location_name
+        
         # If we reach here, it means booking_to_process is 'Booked' and ready for consumption
         booking = booking_to_process # Assign to 'booking' for the rest of the function
         # Update booking status to consumed
@@ -622,11 +655,11 @@ def scan_qr():
                 SET status = 'Consumed', consumed_at = NOW() 
                 WHERE id = %s
             """, (booking['id'],))
-            # Log the consumption
+            # Log the consumption with verification location
             cur.execute("""
                 INSERT INTO meal_consumption_log (booking_id, employee_id, meal_id, location_id, staff_id)
                 VALUES (%s, %s, %s, %s, %s)
-            """, (booking['id'], booking['employee_id'], booking['meal_id'], booking['location_id'], current_user.id))
+            """, (booking['id'], booking['employee_id'], booking['meal_id'], verification_location_id, current_user.id))
             conn.commit() # Changed conn.commit() to conn.commit()
             response_data = {
                 'success': True, 
@@ -634,7 +667,7 @@ def scan_qr():
                 'booking': {
                     'employee_name': booking['employee_name'],
                     'employee_id': booking['employee_id'],
-                    'unit': booking['location_name'],
+                    'unit': verification_location_name,  # Show the location where consumption happened
                     'date': booking['booking_date'].strftime('%Y-%m-%d'),
                     'shift': booking['shift'],
                     'status': 'Consumed' # Explicitly set status for new consumption
@@ -682,14 +715,25 @@ def dashboard():
     from datetime import date
     conn = get_db_connection()
     cur = conn.cursor()
-    # Unit-wise meal data for charts (existing code)
-    cur.execute('''
+    
+    # Check if staff member has a specific location assignment
+    staff_location_filter = ""
+    staff_location_params = []
+    
+    if current_user.location:
+        staff_location_filter = "WHERE l.name = %s"
+        staff_location_params = [current_user.location]
+    
+    # Unit-wise meal data for charts (unit-specific for staff)
+    query = f'''
         SELECT l.name as location_name, COUNT(b.id) as meals_booked
         FROM bookings b
         JOIN locations l ON b.location_id = l.id
+        {staff_location_filter}
         GROUP BY l.name
         ORDER BY meals_booked DESC
-    ''')
+    '''
+    cur.execute(query, staff_location_params)
     unit_data = cur.fetchall()
     desired_order = ['Unit 1', 'Unit 2', 'Unit 3', 'Unit 4', 'Unit 5', 'Pallavaram']
     unit_map = {row['location_name']: row['meals_booked'] for row in unit_data}
@@ -703,12 +747,15 @@ def dashboard():
         if unit not in desired_order:
             pie_labels.append(unit)
             pie_values.append(count)
-    cur.execute('''
+    # Apply same location filter for meal breakdown
+    breakdown_query = f'''
         SELECT l.name as location_name, b.shift, COUNT(b.id) as count
         FROM bookings b
         JOIN locations l ON b.location_id = l.id
+        {staff_location_filter}
         GROUP BY l.name, b.shift
-        ''')
+        '''
+    cur.execute(breakdown_query, staff_location_params)
     breakdown_rows = cur.fetchall()
     meal_breakdown = {}
     for row in breakdown_rows:
@@ -720,16 +767,24 @@ def dashboard():
         meal_breakdown[unit][shift] = count
     # Daily summary data
     today = date.today()
-    cur.execute('''
+    daily_summary_query = f'''
         SELECT b.shift, l.name as location, 
                SUM(CASE WHEN b.status = 'Consumed' THEN 1 ELSE 0 END) as consumed,
                SUM(CASE WHEN b.status = 'Booked' THEN 1 ELSE 0 END) as booked
         FROM bookings b
         JOIN locations l ON b.location_id = l.id
+        {{}}
         WHERE b.booking_date = %s
         GROUP BY b.shift, l.name
         ORDER BY b.shift, l.name
-    ''', (today,))
+    '''
+    # Combine location filter with date filter
+    if staff_location_filter:
+        final_daily_query = daily_summary_query.format(f"{staff_location_filter} AND")
+        cur.execute(final_daily_query, staff_location_params + [today])
+    else:
+        final_daily_query = daily_summary_query.format("")
+        cur.execute(final_daily_query, [today])
     summary_data = cur.fetchall()
     # Monthly summary data
     first_day = today.replace(day=1)
@@ -738,16 +793,24 @@ def dashboard():
     else:
         next_month = today.replace(month=today.month+1, day=1)
     last_day = next_month
-    cur.execute('''
+    monthly_summary_query = f'''
         SELECT b.shift, l.name as location, 
                SUM(CASE WHEN b.status = 'Consumed' THEN 1 ELSE 0 END) as consumed,
                SUM(CASE WHEN b.status = 'Booked' THEN 1 ELSE 0 END) as booked
         FROM bookings b
         JOIN locations l ON b.location_id = l.id
+        {{}}
         WHERE b.booking_date >= %s AND b.booking_date < %s
         GROUP BY b.shift, l.name
         ORDER BY b.shift, l.name
-    ''', (first_day, last_day))
+    '''
+    # Combine location filter with date filter
+    if staff_location_filter:
+        final_monthly_query = monthly_summary_query.format(f"{staff_location_filter} AND")
+        cur.execute(final_monthly_query, staff_location_params + [first_day, last_day])
+    else:
+        final_monthly_query = monthly_summary_query.format("")
+        cur.execute(final_monthly_query, [first_day, last_day])
     monthly_summary_data = cur.fetchall()
     cur.close()
     conn.close()
@@ -760,16 +823,26 @@ def summary():
     today = date.today()
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute('''
+    
+    # Check if staff member has a specific location assignment
+    staff_location_filter = ""
+    staff_location_params = []
+    
+    if current_user.location:
+        staff_location_filter = "AND l.name = %s"
+        staff_location_params = [current_user.location]
+    
+    summary_query = f'''
         SELECT b.shift, l.name as location, 
                SUM(CASE WHEN b.status = 'Consumed' THEN 1 ELSE 0 END) as consumed,
                SUM(CASE WHEN b.status = 'Booked' THEN 1 ELSE 0 END) as booked
         FROM bookings b
         JOIN locations l ON b.location_id = l.id
-        WHERE b.booking_date = %s
+        WHERE b.booking_date = %s {staff_location_filter}
         GROUP BY b.shift, l.name
         ORDER BY b.shift, l.name
-    ''', (today,))
+    '''
+    cur.execute(summary_query, [today] + staff_location_params)
     summary_data = cur.fetchall()
     cur.close()
     conn.close()
@@ -785,16 +858,26 @@ def export_summary_csv():
     today = date.today()
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute('''
+    
+    # Check if staff member has a specific location assignment
+    staff_location_filter = ""
+    staff_location_params = []
+    
+    if current_user.location:
+        staff_location_filter = "AND l.name = %s"
+        staff_location_params = [current_user.location]
+    
+    summary_query = f'''
         SELECT b.shift, l.name as location, 
                SUM(CASE WHEN b.status = 'Consumed' THEN 1 ELSE 0 END) as consumed,
                SUM(CASE WHEN b.status = 'Booked' THEN 1 ELSE 0 END) as booked
         FROM bookings b
         JOIN locations l ON b.location_id = l.id
-        WHERE b.booking_date = %s
+        WHERE b.booking_date = %s {staff_location_filter}
         GROUP BY b.shift, l.name
         ORDER BY b.shift, l.name
-    ''', (today,))
+    '''
+    cur.execute(summary_query, [today] + staff_location_params)
     summary_data = cur.fetchall()
     # Prepare CSV
     si = StringIO()

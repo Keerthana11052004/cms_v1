@@ -97,7 +97,7 @@ def dashboard():
         cur.execute("SELECT id, name FROM locations ORDER BY name")
         locations = cur.fetchall()
         
-        # Get today's booking status
+        # Get today's booking status - only the latest booking for each meal type
         from datetime import date, timedelta
         today = date.today()
         
@@ -107,8 +107,14 @@ def dashboard():
             JOIN meals m ON b.meal_id = m.id
             JOIN locations l ON b.location_id = l.id
             WHERE b.employee_id = %s AND b.booking_date = %s
+            AND b.id IN (
+                SELECT MAX(id) 
+                FROM bookings 
+                WHERE employee_id = %s AND booking_date = %s 
+                GROUP BY shift
+            )
             ORDER BY b.shift
-        """, (current_user.id, today))
+        """, (current_user.id, today, current_user.id, today))
         
         today_bookings = cur.fetchall()
         

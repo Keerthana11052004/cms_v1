@@ -1,13 +1,11 @@
 {% extends 'base_logged_in.html' %}
-{% block title %}
-{% if current_user.role == 'Accounts' %}Dashboard{% elif current_user.role == 'Admin' and current_user.employee_id == 'a001' %}Admin Dashboard{% elif current_user.role == 'Admin' and current_user.location %}Admin Dashboard ({{ current_user.location }}){% else %}Admin Dashboard{% endif %}
-{% endblock %}
+{% block title %}Dashboard{% endblock %}
 {% block main_content %}
 <style>
   .back-btn {
     position: fixed;
     top: 24px;
-    right: 24px;
+    left: 24px;
     z-index: 1000;
     background: #6c757d;
     border: none;
@@ -168,12 +166,15 @@
   }
 </style>
 
-<button class="back-btn" id="logoutBtn" title="{{ _('Logout') }}">
+<button class="back-btn" id="logoutBtn" data-href="{{ url_for('admin.logout') }}" title="{{ _('Logout') }}" aria-label="Logout">
   <i class="bi bi-box-arrow-right"></i>
+</button>
+  <button class="back-btn" style="left: 82px;" onclick="location.reload();" title="Refresh Page" aria-label="Refresh Page">
+  <i class="bi bi-arrow-repeat"></i>
 </button>
 <div class="container" style="max-width: 1100px;">
   <h2 class="mb-2 fw-bold" style="text-align:left;">
-    {% if current_user.role == 'Accounts' %}📊 Dashboard{% elif current_user.role == 'Admin' and current_user.employee_id == 'a001' %} 📊 Admin Dashboard{% elif current_user.role == 'Admin' and current_user.location %} 📊 Admin Dashboard ({{ current_user.location }}){% else %} 📊 Admin Dashboard{% endif %}
+    {% if current_user.role == 'Accounts' %}<span aria-label="Dashboard">📊 Dashboard</span>{% elif current_user.role == 'Admin' and current_user.employee_id == 'a001' %} <span aria-label="Admin Dashboard">📊 Admin Dashboard</span>{% elif current_user.role == 'Admin' and current_user.location %} <span aria-label="Admin Dashboard for {{ current_user.location }}">📊 Admin Dashboard ({{ current_user.location }})</span>{% else %} <span aria-label="Admin Dashboard">📊 Admin Dashboard</span>{% endif %}
   </h2>
   {% if current_user.role == 'Admin' %}
   <div class="card my-4">
@@ -246,9 +247,9 @@
     </div>
     <div class="col-12 mb-3">
       <div class="card dashboard-card trends-grey">
-        <div class="card-body position-relative"> {# Added position-relative here #}
+        <div class="card-body position-relative">
           <h5 class="card-title">📈 Trends (Last 7 Days)</h5>
-          <canvas id="trendsBarChart" width="1100" height="500"></canvas>
+          <canvas id="trendsBarChart"></canvas>
           <div class="position-absolute top-0 end-0 p-3" style="z-index: 10;">
             {% if current_user.employee_id == 'a001' %}
             <a href="{{ url_for('admin.monthly_all_units_report') }}" class="btn btn-sm btn-primary">
@@ -272,9 +273,7 @@
   </div>
 </div>
 
-<style>
-  /* The .monthly-report-btn class is no longer needed as we are using Bootstrap utilities */
-</style>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 <script>
@@ -385,34 +384,18 @@
 
   });
 
-  // Real-time update for Booked Meals (This function is no longer needed for the monthwise card)
-  function updateBookedMeals() {
-    // This function can be removed or repurposed if the real-time update is still desired for other elements
-    // For now, it's kept as is, but its effect on the monthwise card is replaced by the new chart.
-    fetch('/cms/admin/api/booked_meals_by_shift')
-      .then(response => response.json())
-      .then(data => {
-        // These elements are removed from the HTML, so this part will no longer update them.
-        // document.getElementById('booked-breakfast').textContent = data.Breakfast.booked;
-        // document.getElementById('consumed-breakfast').textContent = data.Breakfast.consumed;
-        // document.getElementById('booked-lunch').textContent = data.Lunch.booked;
-        // document.getElementById('consumed-lunch').textContent = data.Lunch.consumed;
-        // document.getElementById('booked-dinner').textContent = data.Dinner.booked;
-        // document.getElementById('consumed-dinner').textContent = data.Dinner.consumed;
-        // document.getElementById('total-booked').textContent = data.Total.booked;
-        // document.getElementById('total-consumed').textContent = data.Total.consumed;
-      });
-  }
-  document.addEventListener('DOMContentLoaded', function() {
-    // updateBookedMeals(); // No longer needed for the monthwise card
-    // setInterval(updateBookedMeals, 10000); // No longer needed for the monthwise card
-  });
 
   var logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', function() {
-      window.location.href = "{{ url_for('admin.logout') }}";
+      var logoutUrl = this.getAttribute('data-href');
+      if (logoutUrl) {
+        window.location.href = logoutUrl;
+      }
     });
   }
 </script>
+
+<!-- Bootstrap JS Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 {% endblock %}

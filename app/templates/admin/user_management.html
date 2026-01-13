@@ -69,6 +69,7 @@
   .pagination .page-item.active .page-link {
     background-color: #1976d2;
     border-color: #1976d2;
+    color: #fff;
   }
   
   /* Mobile Responsiveness */
@@ -245,6 +246,7 @@
                   <th>Role</th>
                   <th>Status</th>
                   <th>Created At</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -261,11 +263,16 @@
                     </span>
                   </td>
                   <td>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'N/A' }}</td>
+                  <td>
+                    <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="btn btn-sm btn-outline-primary">
+                      <i class="bi bi-pencil"></i> Edit
+                    </a>
+                  </td>
                 </tr>
                 {% endfor %}
                 {% if users|length == 0 %}
                 <tr>
-                  <td colspan="7" class="text-center text-muted">No users found for the selected criteria.</td>
+                  <td colspan="8" class="text-center text-muted">No users found for the selected criteria.</td>
                 </tr>
                 {% endif %}
               </tbody>

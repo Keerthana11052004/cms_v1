@@ -51,6 +51,28 @@ class OutsiderMealVendorForm(FlaskForm):
     purpose = SelectField('Purpose', choices=[])
     submit = SubmitField('Save')
 
+class EditUserForm(FlaskForm):
+    employee_id = StringField('Employee ID', validators=[DataRequired()])
+    name = StringField('Name', validators=[DataRequired()])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Password')  # Optional for updates
+    confirm_password = PasswordField('Confirm Password')
+    department_id = SelectField('Department', coerce=int, validators=[DataRequired()])
+    location_id = SelectField('Location', coerce=int, validators=[DataRequired()])
+    role_id = SelectField('Role', coerce=int, validators=[DataRequired()])
+    is_active = BooleanField('Active')
+    submit = SubmitField('Update User')
+    
+    def validate(self):
+        # Skip password validation if not provided (for updates)
+        if not self.password.data:
+            self.password.errors = []
+            self.confirm_password.errors = []
+        elif self.password.data != self.confirm_password.data:
+            self.confirm_password.errors.append('Passwords must match')
+            return False
+        return super().validate()
+
 class AddMenuForm(FlaskForm):
     location_id = SelectField('Unit', coerce=int, validators=[DataRequired()])
     menu_date = DateField('Menu Date', validators=[DataRequired()], default=date.today)

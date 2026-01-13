@@ -1,0 +1,444 @@
+{% extends 'base_logged_in.html' %}
+{% block title %}Manage Missed Tokens{% endblock %}
+{% block main_content %}
+<style>
+.filter-section {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.manual-booking-section {
+    background: #e8f5e8;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    border-left: 4px solid #28a745;
+}
+
+.unit-transfer-section {
+    background: #e8f4ff;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    border-left: 4px solid #007bff;
+}
+
+.table-responsive {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.action-btn {
+    transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+</style>
+
+<div class="container" style="max-width: 1400px;">
+    <h2 class="mb-4 fw-bold">
+        {% if current_location %}
+            🎫 Manage Missed Tokens ({{ current_location }})
+        {% else %}
+            🎫 Manage Missed Tokens (All Plants)
+        {% endif %}
+    </h2>
+
+    <!-- Manual Booking Section -->
+    <div class="manual-booking-section">
+        <h5 class="mb-3 text-success">
+            <i class="bi bi-plus-circle"></i> Manual Meal Booking
+            <small class="text-muted">(For employees who forgot to book meals)</small>
+        </h5>
+        <form id="manualBookingForm" class="row g-3">
+            <div class="col-md-3">
+                <label for="employeeSelect" class="form-label">Employee</label>
+                <select name="employee_id" id="employeeSelect" class="form-select" required>
+                    <option value="">Select Employee</option>
+                    {% for emp in employees %}
+                        <option value="{{ emp.id }}" 
+                            data-department="{{ emp.department_name }}" 
+                            data-current-location="{{ emp.location_name }}">
+                            {{ emp.name }} ({{ emp.employee_id }}) - {{ emp.department_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-2">
+                <label for="mealSelect" class="form-label">Meal</label>
+                <select name="meal_id" id="mealSelect" class="form-select" required>
+                    <option value="">Select Meal</option>
+                    {% for meal in meals %}
+                        <option value="{{ meal.id }}">{{ meal.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-2">
+                <label for="bookingDate" class="form-label">Date</label>
+                <input type="date" name="booking_date" id="bookingDate" class="form-control" required>
+            </div>
+            
+            <div class="col-md-2">
+                <label for="shiftSelect" class="form-label">Shift</label>
+                <select name="shift" id="shiftSelect" class="form-select" required>
+                    <option value="">Select Shift</option>
+                    <option value="Breakfast">Breakfast</option>
+                    <option value="Lunch">Lunch</option>
+                    <option value="Dinner">Dinner</option>
+                </select>
+            </div>
+            
+            <div class="col-md-2">
+                <label for="locationSelect" class="form-label">Location</label>
+                <select name="location_id" id="locationSelect" class="form-select" required>
+                    <option value="">Select Location</option>
+                    {% for location in locations %}
+                        <option value="{{ location.id }}" 
+                            {% if current_location and location.name == current_location %}selected{% endif %}>
+                            {{ location.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-1 d-flex align-items-end">
+                <button type="submit" class="btn btn-success w-100">
+                    <i class="bi bi-book"></i> Book
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Unit Transfer Section -->
+    <div class="unit-transfer-section">
+        <h5 class="mb-3 text-primary">
+            <i class="bi bi-arrow-left-right"></i> Unit Transfer
+            <small class="text-muted">(Transfer existing booking from one unit to another)</small>
+        </h5>
+        <form id="unitTransferForm" class="row g-3">
+            <div class="col-md-3">
+                <label for="bookingIdInput" class="form-label">Booking ID</label>
+                <input type="number" name="booking_id" id="bookingIdInput" class="form-control" placeholder="Enter booking ID" required>
+            </div>
+            
+            <div class="col-md-3">
+                <label for="newLocationSelect" class="form-label">New Location</label>
+                <select name="new_location_id" id="newLocationSelect" class="form-select" required>
+                    <option value="">Select New Location</option>
+                    {% for location in locations %}
+                        <option value="{{ location.id }}" 
+                            {% if current_location and location.name == current_location %}selected{% endif %}>
+                            {{ location.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-arrow-right"></i> Transfer
+                </button>
+            </div>
+            
+            <div class="col-md-4 d-flex align-items-end">
+                <small class="text-muted">Use this when employee booked at one unit but needs to consume at another</small>
+            </div>
+        </form>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="filter-section">
+        <h5 class="mb-3">Filter Options</h5>
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label for="location" class="form-label">Location</label>
+                <select name="location" id="location" class="form-select">
+                    <option value="">All Locations</option>
+                    {% for location in locations %}
+                        <option value="{{ location.name }}" 
+                            {% if filters.location == location.name %}selected{% endif %}>
+                            {{ location.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-3">
+                <label for="date" class="form-label">Date</label>
+                <input type="date" name="date" id="date" class="form-control" 
+                       value="{{ filters.date }}">
+            </div>
+            
+            <div class="col-md-4">
+                <label for="employee" class="form-label">Employee (Name or ID)</label>
+                <input type="text" name="employee" id="employee" class="form-control" 
+                       placeholder="Search by employee name or ID..." 
+                       value="{{ filters.employee }}">
+            </div>
+            
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Results Summary -->
+    <div class="alert alert-info mb-4">
+        Showing <strong>{{ missed_bookings|length }}</strong> missed token{{ 's' if missed_bookings|length != 1 else '' }} 
+        {% if filters.location %}for <em>{{ filters.location }}</em>{% endif %}
+        {% if filters.date %}on <em>{{ filters.date }}</em>{% endif %}
+        {% if filters.employee %}with employee <em>{{ filters.employee }}</em>{% endif %}
+    </div>
+
+    <!-- Missed Bookings Table -->
+    {% if missed_bookings %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Employee ID</th>
+                        <th>Employee Name</th>
+                        <th>Date</th>
+                        <th>Shift</th>
+                        <th>Status</th>
+                        <th>Location</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for booking in missed_bookings %}
+                    <tr>
+                        <td>{{ booking.id }}</td>
+                        <td>{{ booking.employee_id }}</td>
+                        <td>{{ booking.employee_name }}</td>
+                        <td>{{ booking.booking_date.strftime('%Y-%m-%d') if booking.booking_date else 'N/A' }}</td>
+                        <td>
+                            <span class="badge bg-secondary">{{ booking.shift }}</span>
+                        </td>
+                        <td>
+                            {% if booking.status == 'Booked' %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            {% elif booking.status == 'Consumed' %}
+                                <span class="badge bg-success">Consumed</span>
+                            {% elif booking.status == 'Cancelled' %}
+                                <span class="badge bg-danger">Cancelled</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ booking.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ booking.location_name }}</td>
+                        <td>
+                            {% if booking.status != 'Consumed' %}
+                                <button class="btn btn-success btn-sm action-btn issue-token-btn" 
+                                        data-booking-id="{{ booking.id }}"
+                                        data-employee-name="{{ booking.employee_name }}"
+                                        data-shift="{{ booking.shift }}"
+                                        data-date="{{ booking.booking_date.strftime('%Y-%m-%d') if booking.booking_date else 'N/A' }}">
+                                    <i class="bi bi-ticket-perforated"></i> Issue Token
+                                </button>
+                            {% else %}
+                                <span class="text-muted">Already Issued</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info text-center">
+            <h5>No missed tokens found.</h5>
+            <p class="mb-0">All employees have consumed their booked meals or no bookings exist for the selected criteria.</p>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Token Issue</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to issue a missed token for:</p>
+                <ul class="list-group">
+                    <li class="list-group-item"><strong>Employee:</strong> <span id="modal-employee"></span></li>
+                    <li class="list-group-item"><strong>Shift:</strong> <span id="modal-shift"></span></li>
+                    <li class="list-group-item"><strong>Date:</strong> <span id="modal-date"></span></li>
+                </ul>
+                <p class="mt-3 text-warning"><i class="bi bi-exclamation-triangle"></i> This will mark the booking as consumed.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="confirm-issue-btn">Issue Token</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const issueButtons = document.querySelectorAll('.issue-token-btn');
+    const confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    let currentBookingId = null;
+
+    issueButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            currentBookingId = this.dataset.bookingId;
+            document.getElementById('modal-employee').textContent = this.dataset.employeeName;
+            document.getElementById('modal-shift').textContent = this.dataset.shift;
+            document.getElementById('modal-date').textContent = this.dataset.date;
+            
+            confirmModal.show();
+        });
+    });
+
+    document.getElementById('confirm-issue-btn').addEventListener('click', function() {
+        if (!currentBookingId) return;
+
+        fetch(`/admin/issue_missed_token/${currentBookingId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
+                alertDiv.style.zIndex = '9999';
+                alertDiv.innerHTML = `
+                    ${data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.body.appendChild(alertDiv);
+                
+                // Auto-remove after 3 seconds
+                setTimeout(() => {
+                    if (alertDiv.parentNode) {
+                        alertDiv.parentNode.removeChild(alertDiv);
+                    }
+                }, 3000);
+
+                // Reload the page to update the table
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while issuing the token.');
+        });
+
+        confirmModal.hide();
+    });
+
+    // Manual Booking Form Handler
+    const manualBookingForm = document.getElementById('manualBookingForm');
+    if (manualBookingForm) {
+        manualBookingForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(manualBookingForm);
+            
+            fetch('/admin/manual_book_meal', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    manualBookingForm.reset();
+                    // Set default date to today
+                    document.getElementById('bookingDate').valueAsDate = new Date();
+                } else {
+                    showAlert('Error: ' + data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('An error occurred while booking the meal.', 'danger');
+            });
+        });
+    }
+    
+    // Unit Transfer Form Handler
+    const unitTransferForm = document.getElementById('unitTransferForm');
+    if (unitTransferForm) {
+        unitTransferForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(unitTransferForm);
+            
+            fetch('/admin/transfer_booking_unit', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    unitTransferForm.reset();
+                } else {
+                    showAlert('Error: ' + data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('An error occurred while transferring the booking.', 'danger');
+            });
+        });
+    }
+    
+    // Set default date to today for booking date field
+    const bookingDateInput = document.getElementById('bookingDate');
+    if (bookingDateInput && !bookingDateInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        bookingDateInput.value = today;
+    }
+    
+    // Helper function to show alerts
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+        alertDiv.style.zIndex = '9999';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.parentNode.removeChild(alertDiv);
+            }
+        }, 5000);
+    }
+});
+</script>
+{% endblock %}

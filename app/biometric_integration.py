@@ -81,26 +81,27 @@ class BiometricMealBooking:
         punch_hour = punch_time.hour
         punch_minute = punch_time.minute
         
-        # Time-based meal booking logic
-        if 6 <= punch_hour < 9:  # 6 AM - 9 AM
-            # Book both breakfast and lunch if it's early morning
-            if punch_minute <= 30:  # Before 9:30 AM
-                return ['Breakfast', 'Lunch']
-            else:  # After 9:30 AM
-                return ['Lunch']
-        elif 9 <= punch_hour < 14:  # 9 AM - 2 PM
+        # Time-based meal booking logic with your specified timings:
+        # Breakfast: 5 AM to 8 AM
+        # Lunch: 8 AM to 2 PM
+        # Dinner: 2 PM to 10 PM
+        if 5 <= punch_hour < 8:  # 5 AM - 8 AM
+            return ['Breakfast']
+        elif 8 <= punch_hour < 14:  # 8 AM - 2 PM
             return ['Lunch']
         elif 14 <= punch_hour < 22:  # 2 PM - 10 PM
             return ['Dinner']
         else:
             # Outside normal booking hours, default to next meal
             current_time = datetime.now().time()
-            if time(6, 0) <= current_time <= time(9, 30):
+            if time(5, 0) <= current_time < time(8, 0):
                 return ['Breakfast']
-            elif time(9, 30) <= current_time <= time(14, 0):
+            elif time(8, 0) <= current_time < time(14, 0):
                 return ['Lunch']
-            else:
+            elif time(14, 0) <= current_time < time(22, 0):
                 return ['Dinner']
+            else:
+                return ['Dinner']  # Default to dinner for late night hours
 
     def book_meal(self, user_id, meal_types, booking_date=None):
         """Book meal(s) for a user based on their biometric ID"""
@@ -130,16 +131,21 @@ class BiometricMealBooking:
                 self.logger.warning(f"Employee {user_id} does not have a location set")
                 return False
             
-            # Check if any meal is already booked for today
-            cur.execute("""
-                SELECT id FROM bookings 
-                WHERE employee_id = %s AND booking_date = %s AND status = 'Booked'
-            """, (employee_db_id, booking_date))
+            # Check if each specific meal type is already booked for today
+            meal_types_to_book = []
+            for meal_type in meal_types:
+                cur.execute("""
+                    SELECT id FROM bookings 
+                    WHERE employee_id = %s AND booking_date = %s AND shift = %s AND status = 'Booked'
+                """, (employee_db_id, booking_date, meal_type))
+                
+                existing_booking = cur.fetchone()
+                if existing_booking:
+                    self.logger.info(f"User {user_id} already has a {meal_type} booked for today")
+                else:
+                    meal_types_to_book.append(meal_type)
             
-            existing_booking = cur.fetchone()
-            if existing_booking:
-                self.logger.info(f"User {user_id} already has a meal booked for today")
-                return False  # Only one meal per day allowed
+            meal_types = meal_types_to_book  # Update meal_types to only include ones that need to be booked
             
             # Book each meal type
             for meal_type in meal_types:
@@ -179,7 +185,8 @@ class BiometricMealBooking:
                 self.logger.info(f"✅ Meal booked for user {user_id} - {meal_type}")
             
             conn_db.commit()
-            return True
+            # Return True if at least one new meal was booked, False if all were duplicates
+            return len(meal_types_to_book) > 0
             
         except Exception as e:
             self.logger.error(f"Error booking meal: {e}")
@@ -332,7 +339,7 @@ class BiometricMealConsumption:
         finally:
             self.conn = None
 
-    def verify_consumption(self, user_id):
+    def verify_consumption(self, user_id, staff_location_id=None, staff_id=None):
         """Verify meal consumption for a user based on their biometric ID"""
         conn_db = None
         cur = None
@@ -357,7 +364,7 @@ class BiometricMealConsumption:
             from datetime import date
             today = date.today()
             cur.execute("""
-                SELECT b.*, m.name as meal_name, l.name as location_name
+                SELECT b.*, m.name as meal_name, l.name as location_name, l.id as location_id
                 FROM bookings b
                 JOIN meals m ON b.meal_id = m.id
                 JOIN locations l ON b.location_id = l.id
@@ -425,6 +432,12 @@ class BiometricMealConsumption:
                     }
                 }
             
+            # Determine location for consumption logging
+            # If staff_location_id is provided, use that location (for cross-location consumption)
+            # Otherwise, use the original booking location
+            consumption_location_id = booking['location_id'] if staff_location_id is None else staff_location_id
+            consumption_location_name = booking['location_name'] if staff_location_id is None else self._get_location_name_by_id(cur, staff_location_id)
+            
             # Update booking status to consumed
             cur.execute("""
                 UPDATE bookings 
@@ -436,7 +449,7 @@ class BiometricMealConsumption:
             cur.execute("""
                 INSERT INTO meal_consumption_log (booking_id, employee_id, meal_id, location_id, staff_id)
                 VALUES (%s, %s, %s, %s, %s)
-            """, (booking['id'], employee_db_id, booking['meal_id'], booking['location_id'], None))  # Using None as staff_id when called from polling service
+            """, (booking['id'], employee_db_id, booking['meal_id'], consumption_location_id, staff_id))  # staff_id can be None when called from polling service
             
             conn_db.commit()
             
@@ -446,7 +459,7 @@ class BiometricMealConsumption:
                 'booking': {
                     'employee_name': employee_name,
                     'employee_id': employee_id,
-                    'unit': booking['location_name'],
+                    'unit': consumption_location_name,  # Show the location where consumption happened
                     'date': booking['booking_date'].strftime('%Y-%m-%d'),
                     'shift': booking['shift'],
                     'status': 'Consumed'
@@ -462,7 +475,14 @@ class BiometricMealConsumption:
             if cur:
                 cur.close()
             if conn_db:
-                conn_db.close()
+                conn_db.close()  # Make sure to close the connection
+    
+    def _get_location_name_by_id(self, cur, location_id):
+        """Helper method to get location name by ID"""
+        cur.execute("SELECT name FROM locations WHERE id = %s", (location_id,))
+        result = cur.fetchone()
+        return result['name'] if result else 'Unknown Location'
+
 
     def start_service(self):
         """Start the biometric consumption service"""
@@ -504,7 +524,8 @@ class BiometricMealConsumption:
                         )
 
                         # Verify meal consumption based on punch
-                        result = self.verify_consumption(user_id)
+                        # For background polling service, use default parameters (no staff location override)
+                        result = self.verify_consumption(user_id, staff_location_id=None, staff_id=None)
                         
                         if result['success']:
                             self.logger.info(f"🍽️ Meal consumed successfully for {name} (ID: {user_id})")
