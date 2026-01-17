@@ -264,9 +264,9 @@
                   </td>
                   <td>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'N/A' }}</td>
                   <td>
-                    <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="btn btn-sm btn-outline-primary">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="openEditUserModal({{ user.id }})">
                       <i class="bi bi-pencil"></i> Edit
-                    </a>
+                    </button>
                   </td>
                 </tr>
                 {% endfor %}
@@ -281,6 +281,26 @@
           
           <!-- Pagination -->
           {% if pagination and pagination.pages > 1 %}
+          
+          <!-- Edit User Modal -->
+          <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="editUserModalLabel">Edit User</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="editUserModalBody">
+                  <!-- Edit form will be loaded here via AJAX -->
+                  <div class="text-center py-4">
+                    <div class="spinner-border" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="d-flex justify-content-center mt-4">
             <nav aria-label="Page navigation">
               <ul class="pagination">
@@ -379,4 +399,119 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<script>
+// Function to open edit user modal
+function openEditUserModal(userId) {
+  // Show the modal with loading indicator
+  const modalBody = document.getElementById('editUserModalBody');
+  modalBody.innerHTML = `
+    <div class="text-center py-4">
+      <div class="spinner-border" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>`;
+  
+  // Show the modal
+  const editModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+  editModal.show();
+  
+  // Fetch the edit form via AJAX
+  fetch(`/cms/admin/get_edit_user_form/${userId}`, {
+    method: 'GET',
+    headers: {
+      'X-CSRFToken': getCookie('csrf_token'),
+      'Content-Type': 'application/json',
+    },
+    credentials: 'same-origin'
+  })
+    .then(async response => {
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          window.location.href = '/cms/login';
+          return;
+        }
+        const errorText = await response.text();
+        console.error('Server error:', response.status, errorText);
+        throw new Error(`Server error: ${response.status} - ${errorText}`);
+      }
+      
+      // Check if response is JSON or HTML
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return response.json();
+      } else {
+        // If it's HTML, return the text so we can see what error page was returned
+        const text = await response.text();
+        console.error('Expected JSON but got HTML:', text);
+        throw new Error('Server returned HTML instead of JSON: ' + text.substring(0, 200) + '...');
+      }
+    })
+    .then(result => {
+      if (result.html) {
+        modalBody.innerHTML = result.html;
+      } else {
+        throw new Error('Invalid response format');
+      }
+      
+      // Add form submission handler
+      const form = modalBody.querySelector('form');
+      if (form) {
+        form.addEventListener('submit', function(e) {
+          e.preventDefault();
+          
+          // Prepare form data
+          const formData = new FormData(form);
+          
+          // Submit via AJAX
+          fetch(`/cms/admin/update_user/${userId}`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'X-CSRFToken': getCookie('csrf_token')
+            },
+            credentials: 'same-origin'
+          })
+          .then(response => response.json())
+          .then(result => {
+            if (result.success) {
+              // Close modal and show success
+              editModal.hide();
+              alert('User updated successfully!');
+              // Refresh the page to show updated user data
+              location.reload();
+            } else {
+              alert('Error updating user: ' + result.message);
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating the user.');
+          });
+        });
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      modalBody.innerHTML = '<div class="alert alert-danger">Failed to load edit form. Error: ' + error.message + '</div>';
+    });
+}
+
+// Helper function to get cookie value
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+</script>
+
 {% endblock %}
