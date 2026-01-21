@@ -453,6 +453,11 @@ def employee_reports():
     conn = get_db_connection()
     cur = conn.cursor()
     
+    # Pagination
+    page = request.args.get('page', 1, type=int)
+    per_page = 12  # Number of items per page (between 10-15)
+    offset = (page - 1) * per_page
+    
     # Get filter parameters
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
@@ -468,8 +473,18 @@ def employee_reports():
         LEFT JOIN bookings b ON e.id = b.employee_id
     '''
     
+    count_query = '''
+        SELECT COUNT(DISTINCT e.id) as count
+        FROM employees e
+        LEFT JOIN departments d ON e.department_id = d.id
+        LEFT JOIN locations l ON e.location_id = l.id
+        LEFT JOIN bookings b ON e.id = b.employee_id
+    '''
+    
     params = []
+    count_params = []
     where_conditions = []
+    count_where_conditions = []
 
     # All admin users can see all unit data
     # if current_user.role == 'Admin' and current_user.employee_id == 'a001':
@@ -481,44 +496,104 @@ def employee_reports():
     #     if location_id:
     #         where_conditions.append('e.location_id = %s')
     #         params.append(location_id['id'])
+    #         count_where_conditions.append('e.location_id = %s')
+    #         count_params.append(location_id['id'])
     #     else:
     #         # If location not found, return empty results
     #         return render_template('admin/employee_reports.html',
     #                              employees=[],
     #                              start_date=start_date,
-    #                              end_date=end_date)
+    #                              end_date=end_date,
+    #                              pagination=None)
     
     if start_date:
         where_conditions.append('b.booking_date >= %s')
         params.append(start_date)
+        count_where_conditions.append('b.booking_date >= %s')
+        count_params.append(start_date)
     
     if end_date:
         where_conditions.append('b.booking_date <= %s')
         params.append(end_date)
+        count_where_conditions.append('b.booking_date <= %s')
+        count_params.append(end_date)
     
     if where_conditions:
         query += ' WHERE ' + ' AND '.join(where_conditions)
     
+    if count_where_conditions:
+        count_query += ' WHERE ' + ' AND '.join(count_where_conditions)
+    
+    # Get total count for pagination
+    cur.execute(count_query, tuple(count_params))
+    total_count = cur.fetchone()['count']
+    
     query += '''
         GROUP BY e.id, e.name, d.name, l.name
         ORDER BY e.name
+        LIMIT %s OFFSET %s
     '''
     
+    params.extend([per_page, offset])
     cur.execute(query, tuple(params))
     employees = cur.fetchall()
+    
+    # Calculate pagination info
+    total_pages = (total_count + per_page - 1) // per_page
+    
+    # Create a pagination object with iter_pages method
+    class Pagination:
+        def __init__(self, page, pages, per_page, total, has_prev, has_next, prev_num, next_num):
+            self.page = page
+            self.pages = pages
+            self.per_page = per_page
+            self.total = total
+            self.has_prev = has_prev
+            self.has_next = has_next
+            self.prev_num = prev_num
+            self.next_num = next_num
+        
+        def iter_pages(self, left_edge=2, left_current=2, right_current=4, right_edge=2):
+            # Generator to yield page numbers for pagination links
+            last = 0
+            for num in range(1, self.pages + 1):
+                # Show first few pages
+                if num <= left_edge or (num >= self.page - left_current and num <= self.page + right_current) or num > self.pages - right_edge:
+                    if last + 1 != num:
+                        yield None  # Ellipsis
+                    yield num
+                    last = num
+    
+    pagination = Pagination(
+        page=page,
+        pages=total_pages,
+        per_page=per_page,
+        total=total_count,
+        has_prev=page > 1,
+        has_next=page < total_pages,
+        prev_num=page - 1 if page > 1 else None,
+        next_num=page + 1 if page < total_pages else None
+    )
+    
     cur.close()
     conn.close()
 
     return render_template('admin/employee_reports.html', 
                          employees=employees, 
                          start_date=start_date, 
-                         end_date=end_date)
+                         end_date=end_date,
+                         pagination=pagination)
 
 @admin_bp.route('/dept_location_reports')
 @login_required
 def dept_location_reports():
     conn = get_db_connection()
     cur = conn.cursor()
+    
+    # Pagination
+    page = request.args.get('page', 1, type=int)
+    per_page = 12  # Number of items per page (between 10-15)
+    offset = (page - 1) * per_page
     
     # Get filter parameters
     department_filter = request.args.get('department')
@@ -537,8 +612,21 @@ def dept_location_reports():
         LEFT JOIN bookings b ON e.id = b.employee_id
     '''
     
+    # Build the count query separately
+    count_query = '''
+        SELECT COUNT(*) as count
+        FROM (
+            SELECT d.id as dept_id, l.id as loc_id
+            FROM departments d
+            CROSS JOIN locations l
+            LEFT JOIN employees e ON e.department_id = d.id AND e.location_id = l.id
+            LEFT JOIN bookings b ON e.id = b.employee_id
+    '''
+    
     params = []
+    count_params = []
     where_conditions = []
+    count_where_conditions = []
 
     # All admin users can see all unit data
     # if current_user.role == 'Admin' and current_user.employee_id == 'a001':
@@ -550,6 +638,8 @@ def dept_location_reports():
     #     if location_id:
     #         where_conditions.append('l.id = %s')
     #         params.append(location_id['id'])
+    #         count_where_conditions.append('l.id = %s')
+    #         count_params.append(location_id['id'])
     #     else:
     #         # If location not found, return empty results
     #         return render_template('admin/dept_location_reports.html',
@@ -557,23 +647,42 @@ def dept_location_reports():
     #                              departments=[],
     #                              locations=[],
     #                              selected_department=department_filter,
-    #                              selected_location=location_filter)
+    #                              selected_location=location_filter,
+    #                              pagination=None)
     
     if department_filter:
         where_conditions.append('d.name = %s')
         params.append(department_filter)
+        count_where_conditions.append('d.name = %s')
+        count_params.append(department_filter)
     
     if location_filter:
         where_conditions.append('l.name = %s')
         params.append(location_filter)
+        count_where_conditions.append('l.name = %s')
+        count_params.append(location_filter)
     
     if where_conditions:
         query += ' WHERE ' + ' AND '.join(where_conditions)
+    
+    if count_where_conditions:
+        count_query += ' WHERE ' + ' AND '.join(count_where_conditions)
+    
+    # Complete the count query
+    count_query += ' GROUP BY d.id, l.id ) as counted_table'
     
     query += '''
         GROUP BY d.id, l.id, d.name, l.name
         ORDER BY d.name, l.name
     '''
+    
+    # Get total count for pagination
+    cur.execute(count_query, tuple(count_params))
+    total_count = cur.fetchone()['count']
+    
+    # Add limit and offset for pagination
+    query += ' LIMIT %s OFFSET %s'
+    params.extend([per_page, offset])
     
     cur.execute(query, tuple(params))
     reports = cur.fetchall()
@@ -585,6 +694,43 @@ def dept_location_reports():
     cur.execute('SELECT name FROM locations ORDER BY name')
     locations = [row['name'] for row in cur.fetchall()]
     
+    # Calculate pagination info
+    total_pages = (total_count + per_page - 1) // per_page
+    
+    # Create a pagination object with iter_pages method
+    class Pagination:
+        def __init__(self, page, pages, per_page, total, has_prev, has_next, prev_num, next_num):
+            self.page = page
+            self.pages = pages
+            self.per_page = per_page
+            self.total = total
+            self.has_prev = has_prev
+            self.has_next = has_next
+            self.prev_num = prev_num
+            self.next_num = next_num
+        
+        def iter_pages(self, left_edge=2, left_current=2, right_current=4, right_edge=2):
+            # Generator to yield page numbers for pagination links
+            last = 0
+            for num in range(1, self.pages + 1):
+                # Show first few pages
+                if num <= left_edge or (num >= self.page - left_current and num <= self.page + right_current) or num > self.pages - right_edge:
+                    if last + 1 != num:
+                        yield None  # Ellipsis
+                    yield num
+                    last = num
+    
+    pagination = Pagination(
+        page=page,
+        pages=total_pages,
+        per_page=per_page,
+        total=total_count,
+        has_prev=page > 1,
+        has_next=page < total_pages,
+        prev_num=page - 1 if page > 1 else None,
+        next_num=page + 1 if page < total_pages else None
+    )
+    
     cur.close()
     conn.close()
 
@@ -593,7 +739,8 @@ def dept_location_reports():
                          departments=departments,
                          locations=locations,
                          selected_department=department_filter,
-                         selected_location=location_filter)
+                         selected_location=location_filter,
+                         pagination=pagination)
 
 @admin_bp.route('/cost_subsidy')
 @login_required
@@ -1938,39 +2085,13 @@ def add_user():
 
 # Route to get the edit user form for modal
 @admin_bp.route('/get_edit_user_form/<int:user_id>')
+@login_required
 def get_edit_user_form(user_id):
-    # Check session directly to avoid triggering redirect
-    from flask import session as flask_session
-    user_id_from_session = flask_session.get('user_id')
-    
-    if not user_id_from_session:
-        response = jsonify({'success': False, 'message': 'Authentication required.'})
-        response.status_code = 401
+    # Check if user has permission to edit other users
+    if current_user.role not in ['Admin', 'Accounts']:
+        response = jsonify({'success': False, 'message': 'Access denied.'})
+        response.status_code = 403
         return response
-    
-    # Get user info from database to check role
-    conn = get_db_connection()
-    cur = conn.cursor()
-    try:
-        cur.execute('SELECT * FROM employees WHERE id = %s', (user_id_from_session,))
-        user_data = cur.fetchone()
-        
-        if not user_data:
-            response = jsonify({'success': False, 'message': 'User not authenticated.'})
-            response.status_code = 401
-            return response
-        
-        # Map role_id to role name
-        role_map = {1: 'Employee', 2: 'Staff', 3: 'Supervisor', 4: 'HR', 5: 'Accounts', 6: 'Admin'}
-        user_role = role_map.get(user_data['role_id'], 'Employee')
-        
-        if user_role not in ['Admin', 'Accounts']:
-            response = jsonify({'success': False, 'message': 'Access denied.'})
-            response.status_code = 403
-            return response
-    finally:
-        cur.close()
-        conn.close()
     
     conn = get_db_connection()
     cur = conn.cursor()
@@ -1991,25 +2112,10 @@ def get_edit_user_form(user_id):
         # Create form and populate with user data
         form = EditUserForm()
         
-        # Get current user's role info from database to avoid triggering redirect
-        current_user_data = None
-        if user_id_from_session:
-            cur.execute('SELECT * FROM employees WHERE id = %s', (user_id_from_session,))
-            current_user_data = cur.fetchone()
-        
-        # Map role_id to role name for current user
-        role_map = {1: 'Employee', 2: 'Staff', 3: 'Supervisor', 4: 'HR', 5: 'Accounts', 6: 'Admin'}
-        current_user_role = role_map.get(current_user_data['role_id'], 'Employee') if current_user_data else None
-        current_user_employee_id = current_user_data['employee_id'] if current_user_data else None
-        current_user_location_id = current_user_data['location_id'] if current_user_data else None
-        
-        # Get location name if location_id exists
-        current_user_location_name = None
-        if current_user_location_id:
-            cur.execute('SELECT name FROM locations WHERE id = %s', (current_user_location_id,))
-            location_result = cur.fetchone()
-            if location_result:
-                current_user_location_name = location_result['name']
+        # Get current user's role info using current_user from Flask-Login
+        current_user_role = current_user.role
+        current_user_employee_id = current_user.employee_id
+        current_user_location_name = getattr(current_user, 'location', None)
         
         # Populate select field choices
         if current_user_role == 'Admin' and current_user_employee_id == 'a001':

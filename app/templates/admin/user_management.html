@@ -428,26 +428,38 @@ function openEditUserModal(userId) {
     .then(async response => {
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
+          // Redirect to login page
           window.location.href = '/cms/login';
-          return;
+          return null; // Return null to indicate redirection
         }
         const errorText = await response.text();
         console.error('Server error:', response.status, errorText);
         throw new Error(`Server error: ${response.status} - ${errorText}`);
       }
       
-      // Check if response is JSON or HTML
+      // Check if response is JSON
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
         return response.json();
       } else {
-        // If it's HTML, return the text so we can see what error page was returned
+        // If we get here, likely a redirect happened, so check if we're on login page
+        const responseUrl = response.url;
+        if (responseUrl && responseUrl.includes('/login')) {
+          window.location.href = '/cms/login';
+          return null;
+        }
+        // Otherwise, return the error
         const text = await response.text();
         console.error('Expected JSON but got HTML:', text);
         throw new Error('Server returned HTML instead of JSON: ' + text.substring(0, 200) + '...');
       }
     })
     .then(result => {
+      // If result is null, we already redirected, so stop execution
+      if (result === null) {
+        return;
+      }
+      
       if (result.html) {
         modalBody.innerHTML = result.html;
       } else {

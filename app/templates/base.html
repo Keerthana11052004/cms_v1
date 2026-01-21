@@ -20,13 +20,13 @@
         
         /* Fixed sidebar and scrollable content */
         body {
-            overflow: hidden; /* Prevent double scrollbars */
+            overflow: auto !important; /* Allow scrolling */
         }
         
         .main-wrapper {
             display: flex;
-            height: 100vh;
-            overflow: hidden;
+            min-height: 100vh;
+            overflow: visible;
         }
         
         .sidebar-container {

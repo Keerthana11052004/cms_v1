@@ -65,7 +65,7 @@
 </div>
 <style>
   body {
-    overflow: hidden;
+    overflow: auto !important;
     font-size: 0.875rem; /* Smaller base font size */
   }
   
@@ -181,8 +181,9 @@
     padding: 1.5rem;
     transition: margin-left 0.3s cubic-bezier(.4,0,.2,1);
     overflow-y: auto;
-    height: 100vh;
+    min-height: 100vh;
     width: calc(100% - 220px);
+    overflow: visible;
   }
   .sidebar.collapsed ~ .content-container {
     margin-left: 50px;
