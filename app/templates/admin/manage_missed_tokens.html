@@ -64,8 +64,9 @@
                     {% for emp in employees %}
                         <option value="{{ emp.id }}" 
                             data-department="{{ emp.department_name }}" 
-                            data-current-location="{{ emp.location_name }}">
-                            {{ emp.name }} ({{ emp.employee_id }}) - {{ emp.department_name }}
+                            data-current-location="{{ emp.location_name }}"
+                            data-role="{{ emp.role_name }}">
+                            {{ emp.name }} ({{ emp.employee_id }}) - {{ emp.department_name }} ({{ emp.role_name }})
                         </option>
                     {% endfor %}
                 </select>

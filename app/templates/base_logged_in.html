@@ -13,8 +13,6 @@
         <ul class="nav flex-column">
           {% if current_user.role == 'Admin' %}
             <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.dashboard') }}"><span class="menu-icon"><i class="bi bi-speedometer2"></i></span><span class="menu-label">Dashboard</span></a></li>
-            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.employee_reports') }}"><span class="menu-icon"><i class="bi bi-people"></i></span><span class="menu-label">Employee Reports</span></a></li>
-            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.dept_location_reports') }}"><span class="menu-icon"><i class="bi bi-building"></i></span><span class="menu-label">Dept/Location Reports</span></a></li>
             {% if current_user.role == 'Admin' and current_user.location and current_user.employee_id != 'a001' %}
             <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.add_vendor_item') }}"><span class="menu-icon"><i class="bi bi-plus-circle"></i></span><span class="menu-label">Add Vendor Item</span></a></li>
             <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.add_outsider_meal') }}"><span class="menu-icon"><i class="bi bi-people-fill"></i></span><span class="menu-label">Add Outsider Meal</span></a></li>
@@ -43,6 +41,7 @@
             <li class="nav-item mt-1"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.logout') }}"><span class="menu-icon"><i class="bi bi-box-arrow-right"></i></span><span class="menu-label">{{ _('Logout') }}</span></a></li>
           {% elif current_user.role in ['Staff', 'Supervisor'] %}
             <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.dashboard') }}"><span class="menu-icon"><i class="bi bi-speedometer2"></i></span><span class="menu-label">Dashboard</span></a></li>
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.add_menu') }}"><span class="menu-icon"><i class="bi bi-card-list"></i></span><span class="menu-label">Post Menu</span></a></li>
             <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.qr_scanner') }}"><span class="menu-icon"><i class="bi bi-fingerprint"></i></span><span class="menu-label">Biometric Scanner</span></a></li>
             <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.summary') }}"><span class="menu-icon"><i class="bi bi-clipboard-data"></i></span><span class="menu-label">Daily Summary</span></a></li>
             {% if current_user.role == 'Supervisor' %}
@@ -61,6 +60,22 @@
     <button class="hamburger" id="sidebarToggle" aria-label="Toggle sidebar">
       <i class="bi bi-list"></i>
     </button>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="container-fluid">
+          <div class="row justify-content-center">
+            <div class="col-12 col-md-10 col-lg-8">
+              {% for category, message in messages %}
+                <div class="alert alert-{{ 'info' if category == 'message' else category }} alert-dismissible fade show w-100 mx-3 my-3" role="alert" id="flash-message">
+                  {{ message }}
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    {% endwith %}
     {% block main_content %}{% endblock %}
 </div>
 <style>

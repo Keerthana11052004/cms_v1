@@ -179,7 +179,9 @@ def dashboard():
                 ORDER BY FIELD(meal_type, 'Breakfast', 'Lunch', 'Dinner')
             """, (location_id, today))
             daily_menu = cur.fetchall()
-        
+        else:
+            # Don't show debug message - just set empty menu
+            daily_menu = []
         cur.close()
         conn.close()
 
@@ -445,7 +447,6 @@ def view_menu():
         cur.execute("SELECT id FROM locations ORDER BY id LIMIT 1")
         default_location = cur.fetchone()
         location_id = default_location['id'] if default_location else None
-    flash(f"Using location_id: {location_id} to fetch menu.", "info")
 
     menu = []
     if location_id:

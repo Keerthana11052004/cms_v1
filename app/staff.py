@@ -7,8 +7,83 @@ from datetime import date
 import sys
 from .db_config import get_db_connection
 from .employee import URL_Redirect_ConnClose
+import hashlib
+from datetime import date, timedelta, datetime
+from .forms import AddMenuForm
 
 staff_bp = Blueprint('staff', __name__)
+
+
+@staff_bp.route('/add_menu', methods=['GET', 'POST'])
+@login_required
+def add_menu():
+    # Allow only Staff role to add menus
+    if current_user.role not in ['Staff', 'Supervisor']:
+        flash('Access denied.', 'danger')
+        return redirect(url_for('staff.dashboard'))
+
+    form = AddMenuForm()
+    # Set default date to tomorrow
+    if request.method == 'GET':
+        form.menu_date.data = date.today()
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # Populate location choices - Allow staff to see locations that have employees but no dedicated staff
+    # First get the staff's assigned location
+    if current_user.role in ['Staff', 'Supervisor'] and current_user.location:
+        # Get all locations that have employees but may not have dedicated staff
+        cur.execute("""
+            SELECT DISTINCT l.id, l.name 
+            FROM locations l
+            INNER JOIN employees e ON l.id = e.location_id
+            WHERE e.role_id = 1  -- Employee role
+            ORDER BY l.name
+        """)
+        locations = cur.fetchall()
+        form.location_id.choices = [(l['id'], l['name']) for l in locations]
+        if locations:
+            # Default to staff's assigned location if available in the list
+            staff_location_exists = any(loc['name'] == current_user.location for loc in locations)
+            if staff_location_exists:
+                cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
+                staff_loc_result = cur.fetchone()
+                if staff_loc_result:
+                    form.location_id.data = staff_loc_result['id']
+            elif locations:
+                form.location_id.data = locations[0]['id']
+    else:
+        # For safety, if staff doesn't have a location assigned, deny access
+        flash('Access denied: You are not assigned to a location.', 'danger')
+        return redirect(url_for('staff.dashboard'))
+
+    if form.validate_on_submit():
+        location_id = form.location_id.data
+        menu_date = form.menu_date.data
+        meal_type = form.meal_type.data
+        items = form.items.data
+
+        # Check if a menu for this meal type, date, and location already exists
+        cur.execute("SELECT id FROM daily_menus WHERE location_id = %s AND menu_date = %s AND meal_type = %s", (location_id, menu_date, meal_type))
+        existing_menu = cur.fetchone()
+
+        if existing_menu:
+            flash(f'A menu for {meal_type} on {menu_date} for this location already exists.', 'warning')
+            return redirect(url_for('staff.add_menu'))
+
+        try:
+            cur.execute("""
+                INSERT INTO daily_menus (location_id, menu_date, meal_type, items)
+                VALUES (%s, %s, %s, %s)
+            """, (location_id, menu_date, meal_type, items))
+            flash('Menu added successfully!', 'success')
+            return redirect(url_for('staff.add_menu'))
+        except Exception as e:
+            flash(f'Error adding menu: {e}', 'danger')
+    cur.close()
+    conn.close()
+    return render_template('staff/add_menu.html', form=form)
+
 
 @staff_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -461,6 +536,8 @@ def scan_biometric_consumption():
         
         if current_user.location:
             # Get the location ID for staff's assigned location
+            conn = get_db_connection(False)
+            cur = conn.cursor()
             cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
             staff_location = cur.fetchone()
             if staff_location:
@@ -767,23 +844,25 @@ def dashboard():
         meal_breakdown[unit][shift] = count
     # Daily summary data
     today = date.today()
-    daily_summary_query = f'''
+    daily_summary_query = '''
         SELECT b.shift, l.name as location, 
                SUM(CASE WHEN b.status = 'Consumed' THEN 1 ELSE 0 END) as consumed,
                SUM(CASE WHEN b.status = 'Booked' THEN 1 ELSE 0 END) as booked
         FROM bookings b
         JOIN locations l ON b.location_id = l.id
-        {{}}
-        WHERE b.booking_date = %s
+        {}
         GROUP BY b.shift, l.name
         ORDER BY b.shift, l.name
     '''
     # Combine location filter with date filter
     if staff_location_filter:
-        final_daily_query = daily_summary_query.format(f"{staff_location_filter} AND")
+        # When staff_location_filter is "WHERE l.name = %s", we need to insert the date condition
+        # Replace the WHERE with WHERE (condition) AND to add the date filter
+        formatted_filter = staff_location_filter.replace("WHERE", "WHERE (") + " AND b.booking_date = %s)"
+        final_daily_query = daily_summary_query.format(formatted_filter)
         cur.execute(final_daily_query, staff_location_params + [today])
     else:
-        final_daily_query = daily_summary_query.format("")
+        final_daily_query = daily_summary_query.format("WHERE b.booking_date = %s")
         cur.execute(final_daily_query, [today])
     summary_data = cur.fetchall()
     # Monthly summary data
@@ -793,23 +872,25 @@ def dashboard():
     else:
         next_month = today.replace(month=today.month+1, day=1)
     last_day = next_month
-    monthly_summary_query = f'''
+    monthly_summary_query = '''
         SELECT b.shift, l.name as location, 
                SUM(CASE WHEN b.status = 'Consumed' THEN 1 ELSE 0 END) as consumed,
                SUM(CASE WHEN b.status = 'Booked' THEN 1 ELSE 0 END) as booked
         FROM bookings b
         JOIN locations l ON b.location_id = l.id
-        {{}}
-        WHERE b.booking_date >= %s AND b.booking_date < %s
+        {}
         GROUP BY b.shift, l.name
         ORDER BY b.shift, l.name
     '''
     # Combine location filter with date filter
     if staff_location_filter:
-        final_monthly_query = monthly_summary_query.format(f"{staff_location_filter} AND")
+        # When staff_location_filter is "WHERE l.name = %s", we need to insert the date condition
+        # Replace the WHERE with WHERE (condition) AND to add the date filter
+        formatted_filter = staff_location_filter.replace("WHERE", "WHERE (") + " AND b.booking_date >= %s AND b.booking_date < %s)"
+        final_monthly_query = monthly_summary_query.format(formatted_filter)
         cur.execute(final_monthly_query, staff_location_params + [first_day, last_day])
     else:
-        final_monthly_query = monthly_summary_query.format("")
+        final_monthly_query = monthly_summary_query.format("WHERE b.booking_date >= %s AND b.booking_date < %s")
         cur.execute(final_monthly_query, [first_day, last_day])
     monthly_summary_data = cur.fetchall()
     cur.close()

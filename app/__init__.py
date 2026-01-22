@@ -134,18 +134,19 @@ def create_app():
     app.register_blueprint(admin_bp, url_prefix='/cms/admin')
 
     # Start biometric services after app initialization
-    try:
-        start_biometric_service()
-        print("✅ Biometric service started successfully")
-    except Exception as e:
-        print(f"⚠️ Could not start biometric service: {e}")
+    # Temporarily disabled due to connection timeouts
+    # try:
+    #     start_biometric_service()
+    #     print("✅ Biometric service started successfully")
+    # except Exception as e:
+    #     print(f"⚠️ Could not start biometric service: {e}")
     
-    try:
-        from .biometric_integration import biometric_consumption
-        biometric_consumption.start_polling()
-        print("✅ Biometric consumption service started successfully")
-    except Exception as e:
-        print(f"⚠️ Could not start biometric consumption service: {e}")
+    # try:
+    #     from .biometric_integration import biometric_consumption
+    #     biometric_consumption.start_polling()
+    #     print("✅ Biometric consumption service started successfully")
+    # except Exception as e:
+    #     print(f"⚠️ Could not start biometric consumption service: {e}")
 
     @app.errorhandler(404)
     def not_found_error(error):

@@ -152,7 +152,7 @@
               <select class="form-control" name="month">
                 <option value="">All Months</option>
                 {% for month in available_months %}
-                <option value="{{ month }}" {% if selected_month == month %}selected{% endif %}>{{ month }}</option>
+                <option value="{{ month }}" {% if selected_month == month %}selected{% endif %}>{{ month_display_names[month] }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -189,7 +189,7 @@
                 {% endfor %}
                 {% if cost_subsidy_data|length == 0 %}
                 <tr>
-                  <td colspan="7" class="text-center text-muted">No data available for the selected month.</td>
+                  <td colspan="7" class="text-center text-muted">No data available for the selected filters.</td>
                 </tr>
                 {% endif %}
               </tbody>
@@ -252,11 +252,13 @@ document.getElementById('export-link').onclick = function(e) {
     const employeeFilter = document.querySelector('input[name="employee"]').value;
     const departmentFilter = document.querySelector('select[name="department"]').value;
     const unitFilter = document.querySelector('select[name="unit"]').value;
+    const monthFilter = document.querySelector('select[name="month"]').value;
     let url = "/cms/admin/export_cost_subsidy?";
     const params = [];
     if (employeeFilter) params.push("employee=" + encodeURIComponent(employeeFilter));
     if (departmentFilter) params.push("department=" + encodeURIComponent(departmentFilter));
     if (unitFilter) params.push("unit=" + encodeURIComponent(unitFilter));
+    if (monthFilter) params.push("month=" + encodeURIComponent(monthFilter));
     url += params.join("&");
     this.href = url;
     // Let the browser handle the download

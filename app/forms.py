@@ -5,15 +5,15 @@ from flask_babel import lazy_gettext as _l
 from datetime import date
 
 class LoginForm(FlaskForm):
-    employee_id = StringField(_l('Employee ID'), validators=[DataRequired()])
-    password = PasswordField(_l('Password'), validators=[DataRequired()])
-    submit = SubmitField(_l('Login'))
+    employee_id = StringField(str(_l('Employee ID')), validators=[DataRequired()])
+    password = PasswordField(str(_l('Password')), validators=[DataRequired()])
+    submit = SubmitField(str(_l('Login')))
 
 class BookMealForm(FlaskForm):
-    shift = SelectField(_l('Shift'), choices=[('Breakfast', 'Breakfast'), ('Lunch', 'Lunch'), ('Dinner', 'Dinner')], validators=[DataRequired()])
-    date = DateField(_l('Date'), validators=[DataRequired()])
-    recurrence = SelectField(_l('Recurrence'), choices=[('None', 'None'), ('Daily', 'Daily'), ('Weekly', 'Weekly')], default='None')
-    submit = SubmitField(_l('Book'))
+    shift = SelectField(str(_l('Shift')), choices=[('Breakfast', 'Breakfast'), ('Lunch', 'Lunch'), ('Dinner', 'Dinner')], validators=[DataRequired()])
+    date = DateField(str(_l('Date')), validators=[DataRequired()])
+    recurrence = SelectField(str(_l('Recurrence')), choices=[('None', 'None'), ('Daily', 'Daily'), ('Weekly', 'Weekly')], default='None')
+    submit = SubmitField(str(_l('Book')))
 
 class AddUserForm(FlaskForm):
     employee_id = StringField('Employee ID', validators=[DataRequired()])
@@ -63,15 +63,21 @@ class EditUserForm(FlaskForm):
     is_active = BooleanField('Active')
     submit = SubmitField('Update User')
     
-    def validate(self):
-        # Skip password validation if not provided (for updates)
+    def validate(self, extra_validators=None):
+        # Call the parent validate method first
+        rv = super().validate(extra_validators)
+        
+        # Check if passwords match when both are provided
+        if self.password.data and self.confirm_password.data and self.password.data != self.confirm_password.data:
+            self.confirm_password.errors = ['Passwords must match']
+            rv = False
+        
+        # If password is not provided, clear any errors related to confirmation
         if not self.password.data:
-            self.password.errors = []
-            self.confirm_password.errors = []
-        elif self.password.data != self.confirm_password.data:
-            self.confirm_password.errors.append('Passwords must match')
-            return False
-        return super().validate()
+            # Don't require confirm_password if password is not provided
+            pass
+        
+        return rv
 
 class AddMenuForm(FlaskForm):
     location_id = SelectField('Unit', coerce=int, validators=[DataRequired()])
