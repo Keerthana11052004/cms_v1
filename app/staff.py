@@ -29,29 +29,13 @@ def add_menu():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # Populate location choices - Allow staff to see locations that have employees but no dedicated staff
-    # First get the staff's assigned location
+    # Populate location choices - Staff can only see their assigned location
     if current_user.role in ['Staff', 'Supervisor'] and current_user.location:
-        # Get all locations that have employees but may not have dedicated staff
-        cur.execute("""
-            SELECT DISTINCT l.id, l.name 
-            FROM locations l
-            INNER JOIN employees e ON l.id = e.location_id
-            WHERE e.role_id = 1  -- Employee role
-            ORDER BY l.name
-        """)
+        cur.execute("SELECT id, name FROM locations WHERE name = %s", (current_user.location,))
         locations = cur.fetchall()
         form.location_id.choices = [(l['id'], l['name']) for l in locations]
         if locations:
-            # Default to staff's assigned location if available in the list
-            staff_location_exists = any(loc['name'] == current_user.location for loc in locations)
-            if staff_location_exists:
-                cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
-                staff_loc_result = cur.fetchone()
-                if staff_loc_result:
-                    form.location_id.data = staff_loc_result['id']
-            elif locations:
-                form.location_id.data = locations[0]['id']
+            form.location_id.data = locations[0]['id']
     else:
         # For safety, if staff doesn't have a location assigned, deny access
         flash('Access denied: You are not assigned to a location.', 'danger')

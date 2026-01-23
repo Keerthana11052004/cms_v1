@@ -239,7 +239,7 @@ function processBiometricScan(biometricId) {
   console.log('CSRF Token for biometric scan:', csrfToken);
   
   // Use the new biometric consumption endpoint for meal verification
-  fetch('/cms/staff/scan_biometric_consumption', {
+  fetch(`/{{ url_prefix }}/staff/scan_biometric_consumption`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -363,7 +363,7 @@ document.getElementById('clearOldPunches').addEventListener('click', function() 
   if (confirm('⚠️ WARNING: This will attempt to remove all punch data except for today\'s records. NOTE: The device may not support selective deletion, in which case you\'ll need to clear all data. Continue?')) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     
-    fetch('/cms/staff/clear_old_punches', {
+    fetch(`/{{ url_prefix }}/staff/clear_old_punches`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -410,7 +410,7 @@ document.getElementById('syncBiometricUsers').addEventListener('click', function
   if (confirm('⚠️ This will sync all users from your CMS database to the biometric device. Continue?')) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     
-    fetch('/cms/staff/sync_biometric_users', {
+    fetch(`/{{ url_prefix }}/staff/sync_biometric_users`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

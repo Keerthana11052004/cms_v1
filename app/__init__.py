@@ -7,8 +7,9 @@ from flask_login import LoginManager, UserMixin
 from flask_bootstrap import Bootstrap
 from flask_wtf import CSRFProtect
 from datetime import datetime
-#import pymysql  # Import pymysql to access DictCursor
-#from . import Curr_Proj_Name, mysql, User
+from dotenv import load_dotenv  # Add this import
+# import pymysql  # Import pymysql to access DictCursor
+# from . import Curr_Proj_Name, mysql, User
 from .db_config import get_db_connection
 from .biometric_integration import start_biometric_service
 
@@ -94,6 +95,9 @@ def load_user(user_id):
 
 # App factory
 def create_app():
+    # Load environment variables from .env file
+    load_dotenv()
+    
     print("Flask application creation started.")
     app = Flask(__name__, static_folder='static', static_url_path="/static")
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-this-in-production')
@@ -102,6 +106,9 @@ def create_app():
     app.debug = True
     app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
     app.config['ALLOWED_EXTENSIONS'] = {'pdf'}
+    
+    # Load URL prefix from environment
+    app.config['URL_PREFIX'] = os.environ.get('URL_PREFIX', 'cms')
 
     
     mysql.init_app(app)
@@ -128,10 +135,12 @@ def create_app():
 
     init_admin_config(app)
 
-    app.register_blueprint(cms_blueprint, url_prefix='/cms')
-    app.register_blueprint(employee_bp, url_prefix='/cms/employee')
-    app.register_blueprint(staff_bp, url_prefix='/cms/staff')
-    app.register_blueprint(admin_bp, url_prefix='/cms/admin')
+    # Use configured URL prefix
+    url_prefix = app.config['URL_PREFIX']
+    app.register_blueprint(cms_blueprint, url_prefix=f'/{url_prefix}')
+    app.register_blueprint(employee_bp, url_prefix=f'/{url_prefix}/employee')
+    app.register_blueprint(staff_bp, url_prefix=f'/{url_prefix}/staff')
+    app.register_blueprint(admin_bp, url_prefix=f'/{url_prefix}/admin')
 
     # Start biometric services after app initialization
     # Temporarily disabled due to connection timeouts
@@ -176,7 +185,7 @@ def create_app():
         static_dir = os.path.join(os.path.dirname(app.root_path), 'static')
         return send_from_directory(static_dir, 'favicon.ico', mimetype='image/vnd.microsoft.icon')
                                    
-    @app.route('/cms/favicon.ico')
+    @app.route(f'/{app.config["URL_PREFIX"]}/favicon.ico')
     def favicon_cms():
         from flask import send_from_directory
         import os
@@ -184,6 +193,11 @@ def create_app():
         static_dir = os.path.join(os.path.dirname(app.root_path), 'static')
         return send_from_directory(static_dir, 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
+    @app.context_processor
+    def inject_url_prefix():
+        """Make URL prefix available to all templates"""
+        return dict(url_prefix=app.config['URL_PREFIX'])
+    
     @app.route('/')
     def index():
         # Redirect root requests to the CMS home page

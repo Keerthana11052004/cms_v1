@@ -1,5 +1,9 @@
 {% extends 'base.html' %}
-{% set current_lang = g.get('locale', session.get('lang', 'en')) %}
+{% set current_lang = session.get('lang', 'en') %}
+
+<!-- CSRF Token -->
+<meta name="csrf-token" content="{{ csrf_token() }}">
+
 {% block content %}
 <div class="sidebar-container">
     <div class="sidebar" id="sidebar">
@@ -609,6 +613,39 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Network error or unexpected response:', error);
             alert('An unexpected error occurred while saving unit selection.');
         });
+    }
+});
+</script>
+
+<!-- JavaScript for CSRF token handling -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set up CSRF token for all AJAX requests
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    
+    if (csrfToken) {
+        // Set up default headers for fetch requests
+        const originalFetch = fetch;
+        window.fetch = function(...args) {
+            if (args[1] && args[1].method && args[1].method.toUpperCase() !== 'GET') {
+                args[1].headers = {
+                    ...args[1].headers,
+                    'X-CSRFToken': csrfToken
+                };
+            }
+            return originalFetch.apply(this, args);
+        };
+        
+        // Set up jQuery for CSRF if available
+        if (window.jQuery) {
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader("X-CSRFToken", csrfToken);
+                    }
+                }
+            });
+        }
     }
 });
 </script>

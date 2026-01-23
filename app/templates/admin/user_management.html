@@ -283,7 +283,7 @@
           {% if pagination and pagination.pages > 1 %}
           
           <!-- Edit User Modal -->
-          <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+          <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
             <div class="modal-dialog modal-lg">
               <div class="modal-content">
                 <div class="modal-header">
@@ -401,8 +401,22 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <script>
+// Use the URL prefix provided by the server
+window.url_prefix = '{{ url_prefix | default() }}';
+
+console.log('URL Prefix determined:', window.url_prefix); // For debugging
+
 // Function to open edit user modal
 function openEditUserModal(userId) {
+  // Get modal element
+  const editModalElement = document.getElementById('editUserModal');
+  
+  // Check if modal instance already exists, dispose of it first
+  const existingModal = bootstrap.Modal.getInstance(editModalElement);
+  if (existingModal) {
+    existingModal.dispose();
+  }
+  
   // Show the modal with loading indicator
   const modalBody = document.getElementById('editUserModalBody');
   modalBody.innerHTML = `
@@ -413,11 +427,20 @@ function openEditUserModal(userId) {
     </div>`;
   
   // Show the modal
-  const editModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+  const editModal = new bootstrap.Modal(editModalElement, {
+    backdrop: 'static',
+    keyboard: false
+  });
   editModal.show();
   
+  // Prevent multiple clicks during loading
+  const editButtons = document.querySelectorAll('[onclick*="openEditUserModal"]');
+  editButtons.forEach(button => {
+    button.disabled = true;
+  });
+  
   // Fetch the edit form via AJAX
-  fetch(`/cms/admin/get_edit_user_form/${userId}`, {
+  fetch(`${window.url_prefix || ''}/admin/get_edit_user_form/${userId}`, {
     method: 'GET',
     headers: {
       'X-CSRFToken': getCookie('csrf_token'),
@@ -426,10 +449,15 @@ function openEditUserModal(userId) {
     credentials: 'same-origin'
   })
     .then(async response => {
+      // Re-enable buttons after fetch completes
+      editButtons.forEach(button => {
+        button.disabled = false;
+      });
+      
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
           // Redirect to login page
-          window.location.href = '/cms/login';
+          window.location.href = (window.url_prefix || '') + '/login';
           return null; // Return null to indicate redirection
         }
         const errorText = await response.text();
@@ -445,7 +473,7 @@ function openEditUserModal(userId) {
         // If we get here, likely a redirect happened, so check if we're on login page
         const responseUrl = response.url;
         if (responseUrl && responseUrl.includes('/login')) {
-          window.location.href = '/cms/login';
+          window.location.href = (window.url_prefix || '') + '/login';
           return null;
         }
         // Otherwise, return the error
@@ -472,11 +500,18 @@ function openEditUserModal(userId) {
         form.addEventListener('submit', function(e) {
           e.preventDefault();
           
+          // Disable submit button to prevent multiple submissions
+          const submitBtn = form.querySelector('button[type="submit"]');
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Updating...';
+          }
+          
           // Prepare form data
           const formData = new FormData(form);
           
           // Submit via AJAX
-          fetch(`/cms/admin/update_user/${userId}`, {
+          fetch(`${window.url_prefix || ''}/admin/update_user/${userId}`, {
             method: 'POST',
             body: formData,
             headers: {
@@ -494,11 +529,21 @@ function openEditUserModal(userId) {
               location.reload();
             } else {
               alert('Error updating user: ' + result.message);
+              // Re-enable submit button if there was an error
+              if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Update User';
+              }
             }
           })
           .catch(error => {
             console.error('Error:', error);
             alert('An error occurred while updating the user.');
+            // Re-enable submit button if there was an error
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Update User';
+            }
           });
         });
       }
@@ -506,6 +551,11 @@ function openEditUserModal(userId) {
     .catch(error => {
       console.error('Error:', error);
       modalBody.innerHTML = '<div class="alert alert-danger">Failed to load edit form. Error: ' + error.message + '</div>';
+      
+      // Re-enable buttons if there was an error
+      editButtons.forEach(button => {
+        button.disabled = false;
+      });
     });
 }
 

@@ -253,7 +253,7 @@ document.getElementById('export-link').onclick = function(e) {
     const departmentFilter = document.querySelector('select[name="department"]').value;
     const unitFilter = document.querySelector('select[name="unit"]').value;
     const monthFilter = document.querySelector('select[name="month"]').value;
-    let url = "/cms/admin/export_cost_subsidy?";
+    let url = "/{{ url_prefix }}/admin/export_cost_subsidy?";
     const params = [];
     if (employeeFilter) params.push("employee=" + encodeURIComponent(employeeFilter));
     if (departmentFilter) params.push("department=" + encodeURIComponent(departmentFilter));

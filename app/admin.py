@@ -1970,7 +1970,13 @@ def add_user():
                 flash('Employee ID, Name, and Email are required.', 'danger')
                 cur.close()
                 conn.close()
-                return render_template('admin/add_user.html', form=form)
+                # Get the URL prefix by getting the blueprint's URL prefix
+                from flask import request
+                blueprint_prefix = request.url_rule.rule.split('/')[1] if request.url_rule and len(request.url_rule.rule.split('/')) > 1 else ''
+                if blueprint_prefix:
+                    blueprint_prefix = '/' + blueprint_prefix
+                
+                return render_template('admin/add_user.html', form=form, url_prefix=blueprint_prefix)
             
             # Validate email format
             import re
@@ -1979,7 +1985,13 @@ def add_user():
                 flash('Invalid email format.', 'danger')
                 cur.close()
                 conn.close()
-                return render_template('admin/add_user.html', form=form)
+                # Get the URL prefix by getting the blueprint's URL prefix
+                from flask import request
+                blueprint_prefix = request.url_rule.rule.split('/')[1] if request.url_rule and len(request.url_rule.rule.split('/')) > 1 else ''
+                if blueprint_prefix:
+                    blueprint_prefix = '/' + blueprint_prefix
+                
+                return render_template('admin/add_user.html', form=form, url_prefix=blueprint_prefix)
             
             # Check if employee_id already exists
             cur.execute("SELECT id FROM employees WHERE employee_id = %s", (employee_id,))
@@ -1989,7 +2001,13 @@ def add_user():
                 flash(f'Error: Employee ID "{employee_id}" already exists. Please use a different Employee ID.', 'danger')
                 cur.close()
                 conn.close()
-                return render_template('admin/add_user.html', form=form)
+                # Get the URL prefix by getting the blueprint's URL prefix
+                from flask import request
+                blueprint_prefix = request.url_rule.rule.split('/')[1] if request.url_rule and len(request.url_rule.rule.split('/')) > 1 else ''
+                if blueprint_prefix:
+                    blueprint_prefix = '/' + blueprint_prefix
+                
+                return render_template('admin/add_user.html', form=form, url_prefix=blueprint_prefix)
             
             # Hash password if provided
             password_hash = None
@@ -2020,7 +2038,13 @@ def add_user():
             # If form validation fails, re-populate choices and show form again
             cur.close()
             conn.close()
-            return render_template('admin/add_user.html', form=form)
+            # Get the URL prefix by getting the blueprint's URL prefix
+            from flask import request
+            blueprint_prefix = request.url_rule.rule.split('/')[1] if request.url_rule and len(request.url_rule.rule.split('/')) > 1 else ''
+            if blueprint_prefix:
+                blueprint_prefix = '/' + blueprint_prefix
+            
+            return render_template('admin/add_user.html', form=form, url_prefix=blueprint_prefix)
     
     # If GET request, show user management page (like cost_subsidy)
     conn = get_db_connection()
@@ -2194,6 +2218,12 @@ def add_user():
     cur.close()
     conn.close()
     
+    # Get the URL prefix by getting the blueprint's URL prefix
+    from flask import request
+    blueprint_prefix = request.url_rule.rule.split('/')[1] if request.url_rule and len(request.url_rule.rule.split('/')) > 1 else ''
+    if blueprint_prefix:
+        blueprint_prefix = '/' + blueprint_prefix
+    
     return render_template('admin/user_management.html',
                           form=form,
                           users=users,
@@ -2205,7 +2235,8 @@ def add_user():
                           selected_location=location_filter,
                           selected_role=role_filter,
                           selected_is_active=is_active_filter,
-                          pagination=pagination)
+                          pagination=pagination,
+                          url_prefix=blueprint_prefix)
 
 # Route to get the edit user form for modal
 @admin_bp.route('/get_edit_user_form/<int:user_id>')
