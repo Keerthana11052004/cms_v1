@@ -19,7 +19,7 @@ CREATE TABLE departments (
 -- Roles Table
 CREATE TABLE roles (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(50) NOT NULL UNIQUE -- e.g., Employee, Staff, Supervisor, HR, Accounts, Admin
+    name VARCHAR(50) NOT NULL UNIQUE -- e.g., Employee, Canteen Vendor, Unit-wise Admin, Master Admin
 );
 
 -- Employees Table
@@ -117,7 +117,7 @@ INSERT INTO locations (name) VALUES
 
 -- Pre-populate Roles
 INSERT INTO roles (name) VALUES
-('Employee'), ('Staff'), ('Supervisor'), ('HR'), ('Accounts'), ('Admin');
+('Employee'), ('Canteen Vendor'), ('Unit-wise Admin'), ('Master Admin');
 
 -- Example Departments (add as needed)
 INSERT INTO departments (name) VALUES

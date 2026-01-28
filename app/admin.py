@@ -40,15 +40,23 @@ def login():
     if form.validate_on_submit():
         employee_id = form.employee_id.data
         password = form.password.data
-        cur.execute("SELECT * FROM employees WHERE employee_id=%s AND role_id IN (5,6) AND is_active=1", (employee_id,))
+        cur.execute("SELECT * FROM employees WHERE employee_id=%s AND role_id IN (3,6) AND is_active=1", (employee_id,))
         user = cur.fetchone()
         if user and password:
             import hashlib
             password_hash = hashlib.sha256(password.encode()).hexdigest()
             if user['password_hash'] == password_hash or user['password_hash'] == password:
                 # Set role based on role_id
-                role = 'Admin' if user['role_id'] == 6 else 'Accounts'
-                user_obj = User(user['id'], name=user['name'], email=user['email'], role=role)
+                role = 'Master Admin' if user['role_id'] == 6 else 'Unit-wise Admin'
+                # Get location name
+                location = None
+                if user['location_id']:
+                    cur.execute("SELECT name FROM locations WHERE id = %s", (user['location_id'],))
+                    location_row = cur.fetchone()
+                    if location_row:
+                        location = location_row['name']
+                user_obj = User(user['id'], name=user['name'], email=user['email'], role=role, 
+                              location=location, employee_id=user['employee_id'])
                 login_user(user_obj)
                 # Flash message will appear on dashboard
                 return redirect(url_for('admin.dashboard'))
@@ -103,10 +111,10 @@ def dashboard():
 
     # Unit-wise access control
     location_filter_clause = ""
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For master admin 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id_row = cur.fetchone()
         if location_id_row:
@@ -169,9 +177,9 @@ def dashboard():
     """
     monthwise_params = []
     # Unit-wise access control
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         pass  # Master admin sees all data
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id_row = cur.fetchone()
         if location_id_row:
@@ -220,7 +228,7 @@ def dashboard():
 @admin_bp.route('/monthly_all_units_report')
 @login_required
 def monthly_all_units_report():
-    if current_user.role != 'Admin':
+    if current_user.role not in ['Master Admin', 'Unit-wise Admin']:
         flash('Access denied: Only Admin users can view this report.', 'danger')
         return redirect(url_for('admin.dashboard'))
 
@@ -289,7 +297,7 @@ def monthly_all_units_report():
 @admin_bp.route('/monthly_unit_report')
 @login_required
 def monthly_unit_report():
-    if current_user.role != 'Admin' or (current_user.employee_id != 'a001' and not current_user.location):
+    if current_user.role not in ['Master Admin', 'Unit-wise Admin'] or (current_user.employee_id != 'a001' and not current_user.location):
         flash('Access denied: Admin access required.', 'danger')
         return redirect(url_for('admin.dashboard'))
 
@@ -394,7 +402,7 @@ def daily_unit_report():
         params.append(end_date)
 
     # Unit-wise access control
-    if current_user.role == 'Admin' and current_user.employee_id != 'a001' and current_user.location:
+    if current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         where_conditions.append('l.name = %s')
         params.append(current_user.location)
 
@@ -438,7 +446,7 @@ def daily_unit_report():
     params.append(report_date)
 
     # All admin users can see all units
-    # if current_user.role == 'Admin' and current_user.employee_id != 'a001' and current_user.location:
+    # if current_user.role == 'Master Admin' and current_user.employee_id != 'a001' and current_user.location:
     #     where_conditions.append('l.name = %s')
     #     params.append(current_user.location)
 
@@ -477,20 +485,20 @@ def api_booked_meals_by_shift():
     """
     params = []
     # Unit-wise access control
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For master admin 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
             params.append(location_id['id'])
             query += " AND location_id = %s"
     # All admin users can see all unit data
-    # if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    # if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
     #     # For admin user 'a001', show all unit data
     #     pass
-    # elif current_user.role == 'Admin' and current_user.location:
+    # elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
     #     cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
     #     location_id = cur.fetchone()
     #     if location_id:
@@ -553,10 +561,10 @@ def employee_reports():
     count_where_conditions = []
 
     # All admin users can see all unit data
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -695,10 +703,10 @@ def dept_location_reports():
     count_where_conditions = []
 
     # All admin users can see all unit data
-    # if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    # if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
     #     # For admin user 'a001', show all unit data
     #     pass
-    # elif current_user.role == 'Admin' and current_user.location:
+    # elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
     #     cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
     #     location_id = cur.fetchone()
     #     if location_id:
@@ -822,8 +830,8 @@ def cost_subsidy():
     cur.execute('SELECT d.name FROM employees e JOIN departments d ON e.department_id = d.id WHERE e.id = %s', (current_user.id,))
     dept = cur.fetchone()
     # Allow 'a001' to access Cost & Subsidy regardless of department
-    if not (current_user.employee_id == 'a001' or (dept and dept['name'].lower() == 'finance')):
-        flash('Access denied: Only Finance department or Master Admin can access Cost & Subsidy Analysis.', 'danger')
+    if not (current_user.employee_id == 'a001' or current_user.role == 'Master Admin'):
+        flash('Access denied: Only Master Admin can access Cost & Subsidy Analysis.', 'danger')
         return redirect(url_for('admin.dashboard'))
 
     employee_filter = request.args.get('employee', '').strip()
@@ -961,8 +969,8 @@ def export_cost_subsidy():
     cur.execute('SELECT d.name FROM employees e JOIN departments d ON e.department_id = d.id WHERE e.id = %s', (current_user.id,))
     dept = cur.fetchone()
     # Allow 'a001' to export Cost & Subsidy regardless of department
-    if not (current_user.employee_id == 'a001' or (dept and dept['name'].lower() == 'finance')):
-        flash('Access denied: Only Finance department or Master Admin can access Cost & Subsidy Analysis.', 'danger')
+    if not (current_user.employee_id == 'a001' or current_user.role == 'Master Admin'):
+        flash('Access denied: Only Master Admin can access Cost & Subsidy Analysis.', 'danger')
         return redirect(url_for('admin.dashboard'))
 
     employee_filter = request.args.get('employee', '').strip()
@@ -1038,18 +1046,18 @@ def vendor_report_unit_wise():
     count_params = []
     where_conditions = []
 
-    # All admin users can see all unit data
-    # if current_user.role == 'Admin' and current_user.employee_id == 'a001':
-    #     # For admin user 'a001', show all unit data
-    #     pass
-    # elif current_user.role == 'Admin' and current_user.location:
-    #     where_conditions.append('unit = %s')
-    #     params.append(current_user.location)
-    #     count_params.append(current_user.location)
+    # Unit-wise access control
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
+        # For admin user 'a001', show all unit data
+        pass
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
+        where_conditions.append('unit = %s')
+        params.append(current_user.location)
+        count_params.append(current_user.location)
     
     if where_conditions:
-        query += ' AND ' + ' AND '.join(where_conditions)
-        count_query += ' AND ' + ' AND '.join(where_conditions)
+        query += ' WHERE ' + ' AND '.join(where_conditions)
+        count_query += ' WHERE ' + ' AND '.join(where_conditions)
     
     # Get total count for pagination
     cur.execute(count_query, tuple(count_params))
@@ -1120,10 +1128,10 @@ def vendor_report():
     where_conditions = []
 
     # Unit-wise access control
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For master admin 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         where_conditions.append('unit = %s')
         params.append(current_user.location)
         count_params.append(current_user.location)
@@ -1139,7 +1147,7 @@ def vendor_report():
         count_params.append(purpose_filter)
     
     # Unit-wise access control - apply unit filter only if not already applied by unit admin logic
-    if unit_filter and not (current_user.role == 'Admin' and current_user.location and unit_filter == current_user.location):
+    if unit_filter and not (current_user.role == 'Master Admin' and current_user.location and unit_filter == current_user.location):
         where_conditions.append('unit = %s')
         params.append(unit_filter)
         count_params.append(unit_filter)
@@ -1207,7 +1215,7 @@ def vendor_report():
 @admin_bp.route('/add_outsider_meal', methods=['GET', 'POST'])
 @login_required
 def add_outsider_meal():
-    if current_user.role != 'Admin':
+    if current_user.role not in ['Master Admin', 'Unit-wise Admin']:
         flash('Access denied.', 'danger')
         return redirect(url_for('admin.dashboard'))
     
@@ -1284,7 +1292,7 @@ def populate_outsider_meal_form_choices(form):
 @admin_bp.route('/update_vendor_details', methods=['POST'])
 @login_required
 def update_vendor_details():
-    if current_user.role != 'Admin':
+    if current_user.role not in ['Master Admin', 'Unit-wise Admin']:
         flash('Access denied.', 'danger')
         return redirect(url_for('admin.dashboard'))
 
@@ -1334,7 +1342,7 @@ def update_vendor_details():
 @login_required
 def delete_vendor():
     try:
-        if current_user.role != 'Admin':
+        if current_user.role not in ['Master Admin', 'Unit-wise Admin']:
             flash('Access denied.', 'danger')
             return redirect(url_for('admin.dashboard'))
 
@@ -1439,7 +1447,7 @@ def update_vendor_report_unit_wise():
 @admin_bp.route('/export_vendor_report_unit_wise')
 @login_required
 def export_vendor_report_unit_wise():
-    if current_user.role != 'Admin':
+    if current_user.role not in ['Master Admin', 'Unit-wise Admin']:
         flash('Access denied.', 'danger')
         return redirect(url_for('admin.dashboard'))
     
@@ -1469,10 +1477,10 @@ def export_vendor_report_unit_wise():
         params = []
         where_conditions = []
         
-        if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+        if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
             # For admin user 'a001', show all unit data
             pass
-        elif current_user.role == 'Admin' and current_user.location:
+        elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
             where_conditions.append('l.name = %s')
             params.append(current_user.location)
         
@@ -1601,10 +1609,10 @@ def export():
     params = []
     count_params = []  # Define count_params
     # Unit-wise access control
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # Master admin sees all data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         # Unit admin restricted to their location
         query += ' AND l.name = %s'
         count_query += ' AND l.name = %s'
@@ -1628,7 +1636,7 @@ def export():
             count_params.append(department)
         if location:
             # Additional location filter (but unit admin can only filter within their unit)
-            if current_user.role == 'Admin' and current_user.employee_id != 'a001' and current_user.location:
+            if current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
                 # Unit admin - ensure location filter matches their unit
                 if location != current_user.location:
                     flash('Access denied: You can only export data for your assigned unit.', 'danger')
@@ -1676,7 +1684,7 @@ def export():
 @admin_bp.route('/export_employee_report')
 @login_required
 def export_employee_report():
-    if current_user.role != 'Admin':
+    if current_user.role not in ['Master Admin', 'Unit-wise Admin']:
         flash('Access denied.', 'danger')
         return redirect(url_for('admin.dashboard'))
     
@@ -1699,6 +1707,14 @@ def export_employee_report():
     
     params = []
     where_conditions = []
+    
+    # Unit-wise access control
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
+        # For admin user 'a001', show all unit data
+        pass
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
+        where_conditions.append('e.location_id = (SELECT id FROM locations WHERE name = %s)')
+        params.append(current_user.location)
     
     if start_date:
         where_conditions.append('b.booking_date >= %s')
@@ -1755,7 +1771,7 @@ def export_employee_report():
 @admin_bp.route('/export_meal_excel')
 @login_required
 def export_meal_excel():
-    if current_user.role != 'Admin':
+    if current_user.role not in ['Master Admin', 'Unit-wise Admin']:
         flash('Access denied.', 'danger')
         return redirect(url_for('admin.export'))
     # Get filters from request.args
@@ -1777,6 +1793,20 @@ def export_meal_excel():
             WHERE 1=1
         '''
         params = []
+        
+        # Unit-wise access control
+        if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
+            # For admin user 'a001', show all unit data
+            pass
+        elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
+            query += ' AND l.name = %s'
+            params.append(current_user.location)
+            
+            # If a unit admin tries to filter by a different location, deny access
+            if location and location != current_user.location:
+                flash('Access denied: You can only export data for your assigned unit.', 'danger')
+                return redirect(url_for('admin.export'))
+        
         if start_date:
             query += ' AND b.booking_date >= %s'
             params.append(start_date)
@@ -1831,7 +1861,7 @@ def export_meal_excel():
 @admin_bp.route('/export_meal_csv')
 @login_required
 def export_meal_csv():
-    if current_user.role != 'Admin':
+    if current_user.role not in ['Master Admin', 'Unit-wise Admin']:
         flash('Access denied.', 'danger')
         return redirect(url_for('admin.export'))
     # Get filters from request.args
@@ -1853,6 +1883,20 @@ def export_meal_csv():
             WHERE 1=1
         '''
         params = []
+        
+        # Unit-wise access control
+        if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
+            # For admin user 'a001', show all unit data
+            pass
+        elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
+            query += ' AND l.name = %s'
+            params.append(current_user.location)
+            
+            # If a unit admin tries to filter by a different location, deny access
+            if location and location != current_user.location:
+                flash('Access denied: You can only export data for your assigned unit.', 'danger')
+                return redirect(url_for('admin.export'))
+        
         if start_date:
             query += ' AND b.booking_date >= %s'
             params.append(start_date)
@@ -1894,7 +1938,7 @@ def export_meal_csv():
 @admin_bp.route('/add_user', methods=['GET', 'POST'])
 @login_required
 def add_user():
-    if current_user.role not in ['Admin', 'Accounts']:
+    if current_user.role not in ['Master Admin', 'Unit-wise Admin']:
         flash('Access denied.', 'danger')
         return redirect(url_for('admin.dashboard'))
     
@@ -1907,13 +1951,13 @@ def add_user():
         conn = get_db_connection()
         cur = conn.cursor()  # Ensure cursor is initialized before use
         
-        if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+        if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
             # For master admin 'a001', allow all locations and departments
             cur.execute('SELECT id, name FROM locations')
             locations_add = cur.fetchall()
             cur.execute('SELECT id, name FROM departments')
             departments_add = cur.fetchall()
-        elif current_user.role == 'Admin' and current_user.location:
+        elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
             # For location admins, restrict to their location
             cur.execute('SELECT id, name FROM locations WHERE name = %s', (current_user.location,))
             locations_add = cur.fetchall()
@@ -1926,7 +1970,7 @@ def add_user():
             cur.execute('SELECT id, name FROM departments WHERE name != "Admin"')
             departments_add = cur.fetchall()
         
-        cur.execute('SELECT id, name FROM roles WHERE name IN ("Admin", "Employee", "Staff", "Accounts")')
+        cur.execute('SELECT id, name FROM roles WHERE name IN ("Master Admin", "Employee", "Canteen Vendor", "Unit-wise Admin")')
         roles_add = cur.fetchall()
         
         form.location_id.choices = [(l['id'], l['name']) for l in locations_add]
@@ -1934,18 +1978,18 @@ def add_user():
         form.role_id.choices = [(r['id'], r['name']) for r in roles_add]
         
         # Set default values based on user's role
-        if current_user.role == 'Admin' and current_user.location:
+        if current_user.role == 'Master Admin' and current_user.location:
             if locations_add:
                 form.location_id.choices = [(l['id'], l['name']) for l in locations_add]
                 form.location_id.data = locations_add[0]['id'] if len(locations_add) > 0 else None  # Pre-select the unit
             if departments_add:
                 form.department_id.choices = [(d['id'], d['name']) for d in departments_add]
         
-        if current_user.role in ['Admin', 'Accounts']:
+        if current_user.role in ['Master Admin', 'Unit-wise Admin']:
             form.role_id.choices = [(r['id'], r['name']) for r in roles_add]
         else:
             # Limit role choices for other users
-            limited_roles = [r for r in roles_add if r['name'] in ['Employee', 'Staff']]
+            limited_roles = [r for r in roles_add if r['name'] in ['Employee', 'Canteen Vendor']]
             form.role_id.choices = [(r['id'], r['name']) for r in limited_roles]
 
         if form.validate_on_submit():
@@ -1959,8 +2003,8 @@ def add_user():
             is_active = form.is_active.data
             
             # Validate role assignment permissions
-            if current_user.role not in ['Admin', 'Accounts']:
-                flash('Access denied: Only Admin or Accounts can add users.', 'danger')
+            if current_user.role not in ['Master Admin', 'Unit-wise Admin']:
+                flash('Access denied: Only Master Admin or Unit-wise Admin can add users.', 'danger')
                 cur.close()
                 conn.close()
                 return redirect(url_for('admin.add_user'))
@@ -1971,7 +2015,6 @@ def add_user():
                 cur.close()
                 conn.close()
                 # Get the URL prefix by getting the blueprint's URL prefix
-                from flask import request
                 blueprint_prefix = request.url_rule.rule.split('/')[1] if request.url_rule and len(request.url_rule.rule.split('/')) > 1 else ''
                 if blueprint_prefix:
                     blueprint_prefix = '/' + blueprint_prefix
@@ -1986,7 +2029,6 @@ def add_user():
                 cur.close()
                 conn.close()
                 # Get the URL prefix by getting the blueprint's URL prefix
-                from flask import request
                 blueprint_prefix = request.url_rule.rule.split('/')[1] if request.url_rule and len(request.url_rule.rule.split('/')) > 1 else ''
                 if blueprint_prefix:
                     blueprint_prefix = '/' + blueprint_prefix
@@ -2002,7 +2044,6 @@ def add_user():
                 cur.close()
                 conn.close()
                 # Get the URL prefix by getting the blueprint's URL prefix
-                from flask import request
                 blueprint_prefix = request.url_rule.rule.split('/')[1] if request.url_rule and len(request.url_rule.rule.split('/')) > 1 else ''
                 if blueprint_prefix:
                     blueprint_prefix = '/' + blueprint_prefix
@@ -2039,7 +2080,6 @@ def add_user():
             cur.close()
             conn.close()
             # Get the URL prefix by getting the blueprint's URL prefix
-            from flask import request
             blueprint_prefix = request.url_rule.rule.split('/')[1] if request.url_rule and len(request.url_rule.rule.split('/')) > 1 else ''
             if blueprint_prefix:
                 blueprint_prefix = '/' + blueprint_prefix
@@ -2054,13 +2094,13 @@ def add_user():
     form = AddUserForm()
     
     # Populate form choices for the add user form
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For master admin 'a001', allow all locations and departments
         cur.execute('SELECT id, name FROM locations')
         locations_add = cur.fetchall()
         cur.execute('SELECT id, name FROM departments')
         departments_add = cur.fetchall()
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         # For location admins, restrict to their location
         cur.execute('SELECT id, name FROM locations WHERE name = %s', (current_user.location,))
         locations_add = cur.fetchall()
@@ -2073,7 +2113,7 @@ def add_user():
         cur.execute('SELECT id, name FROM departments WHERE name != "Admin"')
         departments_add = cur.fetchall()
     
-    cur.execute('SELECT id, name FROM roles WHERE name IN ("Admin", "Employee", "Staff", "Accounts")')
+    cur.execute('SELECT id, name FROM roles WHERE name IN ("Master Admin", "Employee", "Canteen Vendor", "Unit-wise Admin")')
     roles_add = cur.fetchall()
     
     form.location_id.choices = [(l['id'], l['name']) for l in locations_add]
@@ -2081,18 +2121,18 @@ def add_user():
     form.role_id.choices = [(r['id'], r['name']) for r in roles_add]
     
     # Set default values based on user's role
-    if current_user.role == 'Admin' and current_user.location:
+    if current_user.role == 'Master Admin' and current_user.location:
         if locations_add:
             form.location_id.choices = [(l['id'], l['name']) for l in locations_add]
             form.location_id.data = locations_add[0]['id'] if len(locations_add) > 0 else None  # Pre-select the unit
         if departments_add:
             form.department_id.choices = [(d['id'], d['name']) for d in departments_add]
     
-    if current_user.role in ['Admin', 'Accounts']:
+    if current_user.role in ['Master Admin', 'Unit-wise Admin']:
         form.role_id.choices = [(r['id'], r['name']) for r in roles_add]
     else:
         # Limit role choices for other users
-        limited_roles = [r for r in roles_add if r['name'] in ['Employee', 'Staff']]
+        limited_roles = [r for r in roles_add if r['name'] in ['Employee', 'Canteen Vendor']]
         form.role_id.choices = [(r['id'], r['name']) for r in limited_roles]
     
     # Pagination
@@ -2130,10 +2170,10 @@ def add_user():
     where_conditions = []
     
     # Unit-wise access control for user listing
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # Master admin 'a001' can see all users
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Unit-wise Admin' and current_user.location:
         # Unit admin can only see users from their assigned unit
         where_conditions.append("l.name = %s")
         params.append(current_user.location)
@@ -2156,7 +2196,7 @@ def add_user():
         params.append(department_filter)
         count_params.append(department_filter)
     
-    if location_filter and not (current_user.role == 'Admin' and current_user.location and location_filter == current_user.location):
+    if location_filter and not (current_user.role == 'Master Admin' and current_user.location and location_filter == current_user.location):
         # Apply location filter only if not already applied by unit admin logic
         where_conditions.append("l.name = %s")
         params.append(location_filter)
@@ -2219,7 +2259,6 @@ def add_user():
     conn.close()
     
     # Get the URL prefix by getting the blueprint's URL prefix
-    from flask import request
     blueprint_prefix = request.url_rule.rule.split('/')[1] if request.url_rule and len(request.url_rule.rule.split('/')) > 1 else ''
     if blueprint_prefix:
         blueprint_prefix = '/' + blueprint_prefix
@@ -2243,7 +2282,7 @@ def add_user():
 @login_required
 def get_edit_user_form(user_id):
     # Check if user has permission to edit other users
-    if current_user.role not in ['Admin', 'Accounts']:
+    if current_user.role not in ['Master Admin', 'Unit-wise Admin']:
         response = jsonify({'success': False, 'message': 'Access denied.'})
         response.status_code = 403
         return response
@@ -2273,11 +2312,11 @@ def get_edit_user_form(user_id):
         current_user_location_name = getattr(current_user, 'location', None)
         
         # Populate select field choices
-        if current_user_role == 'Admin' and current_user_employee_id == 'a001':
+        if current_user_role == 'Master Admin' and current_user_employee_id == 'a001':
             cur.execute('SELECT id, name FROM locations')
             locations = cur.fetchall()
             form.location_id.choices = [(l['id'], l['name']) for l in locations]
-        elif current_user_role == 'Admin' and current_user_location_name:
+        elif current_user_role == 'Unit-wise Admin' and current_user_location_name:
             cur.execute('SELECT id, name FROM locations WHERE name = %s', (current_user_location_name,))
             locations = cur.fetchall()
             if not locations:
@@ -2288,13 +2327,13 @@ def get_edit_user_form(user_id):
             locations = cur.fetchall()
             form.location_id.choices = [(l['id'], l['name']) for l in locations]
 
-        cur.execute('SELECT id, name FROM roles WHERE name IN ("Admin", "Employee", "Staff", "Accounts")')
+        cur.execute('SELECT id, name FROM roles WHERE name IN ("Master Admin", "Employee", "Canteen Vendor", "Unit-wise Admin")')
         roles = cur.fetchall()
         
-        if current_user_role == 'Admin' and current_user_employee_id == 'a001':
+        if current_user_role == 'Master Admin' and current_user_employee_id == 'a001':
             form.role_id.choices = [(r['id'], r['name']) for r in roles]
-        elif current_user_role == 'Admin' and current_user_location_name:
-            form.role_id.choices = [(r['id'], r['name']) for r in roles if r['name'] in ["Employee", "Staff"]]
+        elif current_user_role == 'Unit-wise Admin' and current_user_location_name:
+            form.role_id.choices = [(r['id'], r['name']) for r in roles if r['name'] in ["Employee", "Canteen Vendor"]]
         else:
             form.role_id.choices = [(r['id'], r['name']) for r in roles]
 
@@ -2362,6 +2401,17 @@ def get_edit_user_form(user_id):
             selected = 'selected' if loc.get('id') == user.get('location_id') else ''
             form_html += f'<option value="{loc.get("id", "")}" {selected}>{loc.get("name", "")}</option>'
         
+        # Special case: Always add "All Units" option for Master Admin users
+        cur.execute('SELECT name FROM roles WHERE id = %s', (user.get('role_id'),))
+        user_role = cur.fetchone()
+        if user_role and user_role['name'] == 'Master Admin':
+            # Add "All Units" option at the top
+            form_html += '<option value="0" selected>All Units</option>'
+        else:
+            # For non-Master Admin users, add the "All Units" option only if they have location_id = 0
+            if user.get('location_id') == 0:
+                form_html += '<option value="0" selected>All Units</option>'
+        
         form_html += '''
               </select>
             </div>
@@ -2370,6 +2420,7 @@ def get_edit_user_form(user_id):
               <select class="form-select" id="role_id" name="role_id" required>
         '''
         
+        # Add role options
         for role in roles:
             selected = 'selected' if role.get('id') == user.get('role_id') else ''
             form_html += f'<option value="{role.get("id", "")}" {selected}>{role.get("name", "")}</option>'
@@ -2377,15 +2428,12 @@ def get_edit_user_form(user_id):
         form_html += '''
               </select>
             </div>
-            <div class="col-md-6 mb-3 d-flex align-items-center">
-              <div class="form-check mt-4">
-                <input class="form-check-input" type="checkbox" id="is_active" name="is_active"'''
-        form_html += ' checked' if user.get('is_active', False) else ''
-        form_html += '''>
-                <label class="form-check-label" for="is_active">
-                  Is Active
-                </label>
-              </div>
+            <div class="col-md-6 mb-3">
+              <label for="is_active" class="form-label">Active Status</label>
+              <select class="form-select" id="is_active" name="is_active" required>
+                <option value="1" '''+('selected' if user.get('is_active') else '')+'''>Active</option>
+                <option value="0" '''+('selected' if not user.get('is_active') else '')+'''>Inactive</option>
+              </select>
             </div>
           </div>
           <div class="modal-footer">
@@ -2410,61 +2458,22 @@ def get_edit_user_form(user_id):
 
 
 @admin_bp.route('/update_user/<int:user_id>', methods=['POST'])
+@login_required
 def update_user(user_id):
-    # Check session directly to avoid triggering redirect
-    from flask import session as flask_session
-    user_id_from_session = flask_session.get('user_id')
-    
-    if not user_id_from_session:
-        response = jsonify({'success': False, 'message': 'Authentication required.'})
-        response.status_code = 401
+    # Check if current user has permission to update users
+    if current_user.role not in ['Master Admin', 'Unit-wise Admin']:
+        response = jsonify({'success': False, 'message': 'Access denied.'})
+        response.status_code = 403
         return response
     
-    # Get user info from database to check role
-    conn = get_db_connection()
-    cur = conn.cursor()
-    try:
-        cur.execute('SELECT * FROM employees WHERE id = %s', (user_id_from_session,))
-        user_data = cur.fetchone()
-        
-        if not user_data:
-            response = jsonify({'success': False, 'message': 'User not authenticated.'})
-            response.status_code = 401
-            return response
-        
-        # Map role_id to role name
-        role_map = {1: 'Employee', 2: 'Staff', 3: 'Supervisor', 4: 'HR', 5: 'Accounts', 6: 'Admin'}
-        user_role = role_map.get(user_data['role_id'], 'Employee')
-        
-        if user_role not in ['Admin', 'Accounts']:
-            response = jsonify({'success': False, 'message': 'Access denied.'})
-            response.status_code = 403
-            return response
-    finally:
-        cur.close()
-        conn.close()
-    
     conn = get_db_connection()
     cur = conn.cursor()
     
     try:
-        # Get current user's role info from database to avoid triggering redirect
-        cur.execute('SELECT * FROM employees WHERE id = %s', (user_id_from_session,))
-        current_user_data = cur.fetchone()
-        
-        # Map role_id to role name for current user
-        role_map = {1: 'Employee', 2: 'Staff', 3: 'Supervisor', 4: 'HR', 5: 'Accounts', 6: 'Admin'}
-        current_user_role = role_map.get(current_user_data['role_id'], 'Employee') if current_user_data else None
-        current_user_employee_id = current_user_data['employee_id'] if current_user_data else None
-        current_user_location_id = current_user_data['location_id'] if current_user_data else None
-        
-        # Get location name if location_id exists
-        current_user_location_name = None
-        if current_user_location_id:
-            cur.execute('SELECT name FROM locations WHERE id = %s', (current_user_location_id,))
-            location_result = cur.fetchone()
-            if location_result:
-                current_user_location_name = location_result['name']
+        # Get current user's info from Flask-Login current_user
+        current_user_role = current_user.role
+        current_user_employee_id = current_user.employee_id
+        current_user_location_name = getattr(current_user, 'location', None)
         
         # Get form data
         employee_id = request.form.get('employee_id')
@@ -2484,16 +2493,25 @@ def update_user(user_id):
         if password and password != confirm_password:
             return jsonify({'success': False, 'message': 'Passwords do not match.'})
         
-        # Enforce location for unit admins
-        if current_user_role == 'Admin' and current_user_employee_id == 'a001':
-            pass
-        elif current_user_role == 'Admin' and current_user_location_name:
-            cur.execute('SELECT id FROM locations WHERE name = %s', (current_user_location_name,))
-            allowed_location = cur.fetchone()
-            if allowed_location:
-                location_id = allowed_location['id']
-            else:
-                return jsonify({'success': False, 'message': 'Error: Your assigned unit location was not found.'})
+        # Enforce location for unit admins - they can only assign users to their own unit
+        if current_user_role == 'Master Admin' and current_user_employee_id == 'a001':
+            pass  # Master admin can assign to any location
+        elif role_id == 6 and location_id == '0':  # 6 is the role_id for Master Admin
+            # Special case: Master Admin with "All Units" location
+            # Set location_id to NULL or a default value
+            location_id = None
+        elif current_user_role == 'Master Admin' and current_user_employee_id != 'a001' and current_user_location_name:
+            # Check if user is editing their own record
+            cur.execute('SELECT employee_id FROM employees WHERE id = %s', (user_id,))
+            target_user = cur.fetchone()
+            
+            # Allow unit admin to change their own location, but restrict changing others
+            if not target_user or target_user['employee_id'] != current_user_employee_id:
+                # Unit admin editing someone else - verify the selected location matches their assigned unit
+                cur.execute('SELECT name FROM locations WHERE id = %s', (location_id,))
+                selected_location = cur.fetchone()
+                if not selected_location or selected_location['name'] != current_user_location_name:
+                    return jsonify({'success': False, 'message': f'Access denied: You can only assign users to your assigned unit ({current_user_location_name}).'})
         
         # Check if employee_id is being changed and if the new ID already exists
         cur.execute("SELECT id FROM employees WHERE employee_id = %s AND id != %s", (employee_id, user_id))
@@ -2532,7 +2550,7 @@ def update_user(user_id):
 @admin_bp.route('/edit_user/<int:user_id>', methods=['GET', 'POST'])
 @login_required
 def edit_user(user_id):
-    if current_user.role not in ['Admin', 'Accounts']:
+    if current_user.role not in ['Master Admin', 'Unit-wise Admin']:
         flash('Access denied.', 'danger')
         return redirect(url_for('admin.dashboard'))
     
@@ -2555,8 +2573,9 @@ def edit_user(user_id):
             return redirect(url_for('admin.add_user'))
         
         # Check if current user has permission to edit this user
-        if current_user.role == 'Admin' and current_user.employee_id != 'a001' and current_user.location:
+        if current_user.role == 'Master Admin' and current_user.location and not (current_user.employee_id == 'a001'):
             # Unit admin - can only edit users from their assigned unit
+            # Master admin 'a001' can edit users from any unit
             if user['location_name'] != current_user.location:
                 flash('Access denied: You can only edit users from your assigned unit.', 'danger')
                 return redirect(url_for('admin.add_user'))
@@ -2565,11 +2584,13 @@ def edit_user(user_id):
         form = EditUserForm()
         
         # Populate select field choices
-        if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+        if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
             cur.execute('SELECT id, name FROM locations')
             locations = cur.fetchall()
             form.location_id.choices = [(l['id'], l['name']) for l in locations]
-        elif current_user.role == 'Admin' and current_user.location:
+        elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
+            # Unit admin - only show their assigned location
+            # Master admin 'a001' should see all locations (handled in the first condition)
             cur.execute('SELECT id, name FROM locations WHERE name = %s', (current_user.location,))
             locations = cur.fetchall()
             if not locations:
@@ -2581,13 +2602,15 @@ def edit_user(user_id):
             locations = cur.fetchall()
             form.location_id.choices = [(l['id'], l['name']) for l in locations]
 
-        cur.execute('SELECT id, name FROM roles WHERE name IN ("Admin", "Employee", "Staff", "Accounts")')
+        cur.execute('SELECT id, name FROM roles WHERE name IN ("Master Admin", "Employee", "Canteen Vendor", "Unit-wise Admin")')
         roles = cur.fetchall()
         
-        if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+        if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
             form.role_id.choices = [(r['id'], r['name']) for r in roles]
-        elif current_user.role == 'Admin' and current_user.location:
-            form.role_id.choices = [(r['id'], r['name']) for r in roles if r['name'] in ["Employee", "Staff"]]
+        elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
+            # Unit admin - limited role choices
+            # Master admin 'a001' gets all roles (handled in first condition)
+            form.role_id.choices = [(r['id'], r['name']) for r in roles if r['name'] in ["Employee", "Canteen Vendor"]]
         else:
             form.role_id.choices = [(r['id'], r['name']) for r in roles]
 
@@ -2637,12 +2660,15 @@ def edit_user(user_id):
                 return render_template('admin/edit_user.html', form=form, user=user)
             
             # Check if location_id belongs to current user's unit (if unit admin)
-            if current_user.role == 'Admin' and current_user.employee_id != 'a001' and current_user.location:
-                cur.execute('SELECT name FROM locations WHERE id = %s', (location_id,))
-                location_result = cur.fetchone()
-                if location_result and location_result['name'] != current_user.location:
-                    flash('Access denied: You can only assign users to your assigned unit.', 'danger')
-                    return render_template('admin/edit_user.html', form=form, user=user)
+            if current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
+                # Check if user is editing their own record
+                if user['employee_id'] != current_user.employee_id:
+                    # Unit admin editing someone else - verify the selected location matches their assigned unit
+                    cur.execute('SELECT name FROM locations WHERE id = %s', (location_id,))
+                    location_result = cur.fetchone()
+                    if location_result and location_result['name'] != current_user.location:
+                        flash('Access denied: You can only assign users to your assigned unit.', 'danger')
+                        return render_template('admin/edit_user.html', form=form, user=user)
             
             # Update user
             update_query = '''
@@ -2685,7 +2711,7 @@ def debug_routes():
 @admin_bp.route('/special_messages', methods=['GET', 'POST'])
 @login_required
 def special_messages():
-    if current_user.role != 'Admin':
+    if current_user.role not in ['Master Admin', 'Unit-wise Admin']:
         flash('Access denied: Only Admin can manage special messages.', 'danger')
         return redirect(url_for('admin.dashboard'))
 
@@ -2752,7 +2778,7 @@ def special_messages():
 @admin_bp.route('/edit_vendor/<vendor_name>', methods=['GET'])
 @login_required
 def edit_vendor(vendor_name):
-    if current_user.role != 'Admin':
+    if current_user.role not in ['Master Admin', 'Unit-wise Admin']:
         flash('Access denied.', 'danger')
         return redirect(url_for('admin.dashboard'))
 
@@ -2790,7 +2816,7 @@ def populate_vendor_form_choices(form):
 @admin_bp.route('/add_vendor_item', methods=['GET', 'POST'])
 @login_required
 def add_vendor_item():
-    if current_user.role != 'Admin':
+    if current_user.role not in ['Master Admin', 'Unit-wise Admin']:
         flash('Access denied.', 'danger')
         return redirect(url_for('admin.dashboard'))
 
@@ -2939,68 +2965,16 @@ def uploaded_file(filename):
         abort(500)
 
 
-@admin_bp.route('/plant_access_dashboard')
-@login_required
-def plant_access_dashboard():
-    if current_user.role != 'Admin':
-        flash('Access denied.', 'danger')
-        return redirect(url_for('admin.dashboard'))
-    
-    conn = get_db_connection()
-    cur = conn.cursor()
-    
-    try:
-        # Get all locations for plant-wise access
-        cur.execute("SELECT * FROM locations ORDER BY name")
-        locations = cur.fetchall()
-        
-        # Unit-wise access control
-        if current_user.employee_id != 'a001' and current_user.location:
-            # Unit admin can only see their own location
-            locations = [loc for loc in locations if loc['name'] == current_user.location]
-        
-        # Get booking statistics by location
-        location_stats = []
-        for location in locations:
-            cur.execute("""
-                SELECT 
-                    COUNT(*) as total_bookings,
-                    SUM(CASE WHEN status = 'Booked' THEN 1 ELSE 0 END) as pending_consumption,
-                    SUM(CASE WHEN status = 'Consumed' THEN 1 ELSE 0 END) as consumed,
-                    SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END) as cancelled
-                FROM bookings b
-                JOIN locations l ON b.location_id = l.id
-                WHERE l.name = %s AND booking_date = CURDATE()
-            """, (location['name'],))
-            stats = cur.fetchone()
-            location_stats.append({
-                'location': location,
-                'stats': stats
-            })
-        
-        # For admin user 'a001', show 'All Plants' in title
-        display_location = current_user.location
-        if current_user.employee_id == 'a001':
-            display_location = None  # Shows 'All Plants' in template
-        
-        return render_template('admin/plant_access_dashboard.html', 
-                               location_stats=location_stats,
-                               current_location=display_location,
-                               csrf_token=generate_csrf())
-    
-    except Exception as e:
-        flash(f'Error loading plant access dashboard: {str(e)}', 'danger')
-        return redirect(url_for('admin.dashboard'))
-    
-    finally:
-        cur.close()
-        conn.close()
+
 
 
 @admin_bp.route('/manage_missed_tokens')
 @login_required
 def manage_missed_tokens():
-    if current_user.role != 'Admin':
+    print("=== MANAGE MISSED TOKENS ROUTE CALLED ===")
+    print(f"Current user: employee_id={current_user.employee_id}, role={current_user.role}, location={current_user.location}")
+    
+    if current_user.role not in ['Master Admin', 'Unit-wise Admin']:
         flash('Access denied.', 'danger')
         return redirect(url_for('admin.dashboard'))
     
@@ -3031,9 +3005,21 @@ def manage_missed_tokens():
         if location_filter:
             conditions.append("l.name = %s")
             params.append(location_filter)
-        elif current_user.location:  # Unit-specific admin
+        elif current_user.location and not (current_user.role == 'Master Admin' and current_user.employee_id == 'a001'):
+            # Unit-specific admin - only show their assigned unit's data
+            # Master admin 'a001' should see all units regardless of their assigned location
+            print(f"DEBUG: Applying location filter for unit admin. Location: {current_user.location}")
             conditions.append("l.name = %s")
             params.append(current_user.location)
+        else:
+            print(f"DEBUG: No location filter applied.")
+            print(f"  current_user.location = {current_user.location}")
+            print(f"  current_user.role = {current_user.role}")  
+            print(f"  current_user.employee_id = {current_user.employee_id}")
+            print(f"  Condition check: current_user.location = {bool(current_user.location)}")
+            print(f"  Condition check: (current_user.role == 'Master Admin' and current_user.employee_id == 'a001') = {(current_user.role == 'Master Admin' and current_user.employee_id == 'a001')}")
+            print(f"  Condition check: not (current_user.role == 'Master Admin' and current_user.employee_id == 'a001') = {not (current_user.role == 'Master Admin' and current_user.employee_id == 'a001')}")
+            print(f"  Final condition: current_user.location and not (current_user.role == 'Master Admin' and current_user.employee_id == 'a001') = {bool(current_user.location and not (current_user.role == 'Master Admin' and current_user.employee_id == 'a001'))}")
             
         if date_filter:
             conditions.append("b.booking_date = %s")
@@ -3048,31 +3034,57 @@ def manage_missed_tokens():
         
         # Get missed bookings
         full_query = "SELECT " + " ".join(query_parts) + base_query + " ORDER BY b.booking_date DESC, b.shift, e.name"
+        print(f"DEBUG: Final query: {full_query}")
+        print(f"DEBUG: Query params: {params}")
+        print(f"DEBUG: Conditions applied: {conditions}")
         cur.execute(full_query, params)
         missed_bookings = cur.fetchall()
+        print(f"DEBUG: Found {len(missed_bookings)} missed bookings")
+        if missed_bookings:
+            locations_found = set(row['location_name'] for row in missed_bookings)
+            print(f"DEBUG: Locations found in results: {sorted(locations_found)}")
         
-        # Get all locations for filter dropdown
-        cur.execute("SELECT * FROM locations ORDER BY name")
-        locations = cur.fetchall()
+        # Get locations for manual booking - filtered by user access rights
+        if current_user.employee_id == 'a001':
+            # Master admin 'a001' - show all locations
+            cur.execute("SELECT * FROM locations ORDER BY name")
+            locations = cur.fetchall()
+        elif current_user.location:
+            # Unit-specific admin - only show their own location
+            cur.execute("SELECT * FROM locations WHERE name = %s ORDER BY name", (current_user.location,))
+            locations = cur.fetchall()
+        else:
+            # Other admins - show all locations
+            cur.execute("SELECT * FROM locations ORDER BY name")
+            locations = cur.fetchall()
         
         # Get employees for manual booking
-        if current_user.location:
-            # Unit-specific admin - only show employees from their location
+        if current_user.employee_id == 'a001':
+            # Master admin 'a001' - show all employees with role 'employee' from all locations
             cur.execute("""SELECT e.id, e.employee_id, e.name, d.name as department_name, l.name as location_name, r.name as role_name
                           FROM employees e
                           JOIN departments d ON e.department_id = d.id
                           JOIN locations l ON e.location_id = l.id
                           JOIN roles r ON e.role_id = r.id
-                          WHERE e.is_active = 1 AND l.name = %s
+                          WHERE e.is_active = 1 AND r.name = 'employee'
+                          ORDER BY e.name""")
+        elif current_user.location:
+            # Unit-specific admin - only show employees from their location with role 'employee'
+            cur.execute("""SELECT e.id, e.employee_id, e.name, d.name as department_name, l.name as location_name, r.name as role_name
+                          FROM employees e
+                          JOIN departments d ON e.department_id = d.id
+                          JOIN locations l ON e.location_id = l.id
+                          JOIN roles r ON e.role_id = r.id
+                          WHERE e.is_active = 1 AND l.name = %s AND r.name = 'employee'
                           ORDER BY e.name""", (current_user.location,))
         else:
-            # Master admin - show all employees
+            # Other admins - show all employees with role 'employee'
             cur.execute("""SELECT e.id, e.employee_id, e.name, d.name as department_name, l.name as location_name, r.name as role_name
                           FROM employees e
                           JOIN departments d ON e.department_id = d.id
                           JOIN locations l ON e.location_id = l.id
                           JOIN roles r ON e.role_id = r.id
-                          WHERE e.is_active = 1
+                          WHERE e.is_active = 1 AND r.name = 'employee'
                           ORDER BY e.name""")
         employees = cur.fetchall()
         
@@ -3080,12 +3092,17 @@ def manage_missed_tokens():
         cur.execute("SELECT * FROM meals ORDER BY name")
         meals = cur.fetchall()
         
+        # Determine display location for header
+        display_location = None
+        if current_user.employee_id != 'a001' and current_user.location:
+            display_location = current_user.location
+        
         return render_template('admin/manage_missed_tokens.html',
                                missed_bookings=missed_bookings,
                                locations=locations,
                                employees=employees,
                                meals=meals,
-                               current_location=current_user.location,
+                               current_location=display_location,
                                filters={
                                    'location': location_filter,
                                    'date': date_filter,
@@ -3105,7 +3122,7 @@ def manage_missed_tokens():
 @admin_bp.route('/issue_missed_token/<int:booking_id>', methods=['POST'])
 @login_required
 def issue_missed_token(booking_id):
-    if current_user.role != 'Admin':
+    if current_user.role not in ['Master Admin', 'Unit-wise Admin']:
         return {'success': False, 'message': 'Access denied.'}, 403
     
     conn = get_db_connection()
@@ -3140,7 +3157,7 @@ def issue_missed_token(booking_id):
         
         # Log the consumption
         cur.execute("""
-            INSERT INTO meal_consumption_log (booking_id, employee_id, meal_id, location_id, staff_id)
+            INSERT INTO meal_consumption_log (booking_id, employee_id, meal_id, location_id, vendor_id)
             VALUES (%s, %s, %s, %s, %s)
         """, (
             booking_id,
@@ -3169,7 +3186,7 @@ def issue_missed_token(booking_id):
 @admin_bp.route('/manual_book_meal', methods=['POST'])
 @login_required
 def manual_book_meal():
-    if current_user.role != 'Admin':
+    if current_user.role not in ['Master Admin', 'Unit-wise Admin']:
         return {'success': False, 'message': 'Access denied.'}, 403
     
     conn = get_db_connection()
@@ -3179,12 +3196,29 @@ def manual_book_meal():
         employee_id = request.form.get('employee_id')
         meal_id = request.form.get('meal_id')
         booking_date = request.form.get('booking_date')
-        shift = request.form.get('shift')
         location_id = request.form.get('location_id')
         
         # Validate inputs
-        if not all([employee_id, meal_id, booking_date, shift, location_id]):
+        if not all([employee_id, meal_id, booking_date, location_id]):
             return {'success': False, 'message': 'All fields are required.'}, 400
+        
+        # Determine shift based on meal name
+        cur.execute("SELECT name FROM meals WHERE id = %s", (meal_id,))
+        meal = cur.fetchone()
+        if not meal:
+            return {'success': False, 'message': 'Meal not found.'}, 404
+        
+        # Map meal names to shifts (assuming typical meal times)
+        meal_name = meal['name'].lower()
+        if 'breakfast' in meal_name or meal_name == 'bf' or meal_name.startswith('b'):
+            shift = 'Breakfast'
+        elif 'lunch' in meal_name or meal_name == 'ln' or meal_name.startswith('l'):
+            shift = 'Lunch'
+        elif 'dinner' in meal_name or 'supper' in meal_name or meal_name == 'dn' or meal_name.startswith('d'):
+            shift = 'Dinner'
+        else:
+            # Default to a shift based on time of day or just use the meal name
+            shift = meal['name']
         
         # Verify employee exists and get their details
         cur.execute("SELECT * FROM employees WHERE id = %s", (employee_id,))
@@ -3249,7 +3283,7 @@ def manual_book_meal():
 @admin_bp.route('/transfer_booking_unit', methods=['POST'])
 @login_required
 def transfer_booking_unit():
-    if current_user.role != 'Admin':
+    if current_user.role not in ['Master Admin', 'Unit-wise Admin']:
         return {'success': False, 'message': 'Access denied.'}, 403
     
     conn = get_db_connection()

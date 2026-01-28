@@ -11,16 +11,16 @@ import hashlib
 from datetime import date, timedelta, datetime
 from .forms import AddMenuForm
 
-staff_bp = Blueprint('staff', __name__)
+vendor_bp = Blueprint('vendor', __name__)
 
 
-@staff_bp.route('/add_menu', methods=['GET', 'POST'])
+@vendor_bp.route('/add_menu', methods=['GET', 'POST'])
 @login_required
 def add_menu():
-    # Allow only Staff role to add menus
-    if current_user.role not in ['Staff', 'Supervisor']:
+    # Allow only Canteen Vendor role to add menus
+    if current_user.role not in ['Canteen Vendor', 'Unit-wise Admin']:
         flash('Access denied.', 'danger')
-        return redirect(url_for('staff.dashboard'))
+        return redirect(url_for('vendor.dashboard'))
 
     form = AddMenuForm()
     # Set default date to tomorrow
@@ -29,17 +29,17 @@ def add_menu():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # Populate location choices - Staff can only see their assigned location
-    if current_user.role in ['Staff', 'Supervisor'] and current_user.location:
+    # Populate location choices - Canteen Vendor can only see their assigned location
+    if current_user.role in ['Canteen Vendor', 'Unit-wise Admin'] and current_user.location:
         cur.execute("SELECT id, name FROM locations WHERE name = %s", (current_user.location,))
         locations = cur.fetchall()
         form.location_id.choices = [(l['id'], l['name']) for l in locations]
         if locations:
             form.location_id.data = locations[0]['id']
     else:
-        # For safety, if staff doesn't have a location assigned, deny access
+        # For safety, if canteen vendor doesn't have a location assigned, deny access
         flash('Access denied: You are not assigned to a location.', 'danger')
-        return redirect(url_for('staff.dashboard'))
+        return redirect(url_for('vendor.dashboard'))
 
     if form.validate_on_submit():
         location_id = form.location_id.data
@@ -53,7 +53,7 @@ def add_menu():
 
         if existing_menu:
             flash(f'A menu for {meal_type} on {menu_date} for this location already exists.', 'warning')
-            return redirect(url_for('staff.add_menu'))
+            return redirect(url_for('vendor.add_menu'))
 
         try:
             cur.execute("""
@@ -61,15 +61,15 @@ def add_menu():
                 VALUES (%s, %s, %s, %s)
             """, (location_id, menu_date, meal_type, items))
             flash('Menu added successfully!', 'success')
-            return redirect(url_for('staff.add_menu'))
+            return redirect(url_for('vendor.add_menu'))
         except Exception as e:
             flash(f'Error adding menu: {e}', 'danger')
     cur.close()
     conn.close()
-    return render_template('staff/add_menu.html', form=form)
+    return render_template('vendor/add_menu.html', form=form)
 
 
-@staff_bp.route('/login', methods=['GET', 'POST'])
+@vendor_bp.route('/login', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
     from . import mysql, User
@@ -86,20 +86,20 @@ def login():
         if user and password:
             password_hash = hashlib.sha256(password.encode()).hexdigest()
             if user['password_hash'] == password_hash or user['password_hash'] == password:
-                role = 'Supervisor' if user['role_id'] == 3 else 'Staff'
+                role = 'Unit-wise Admin' if user['role_id'] == 3 else 'Canteen Vendor'
                 user_obj = User(user['id'], name=user['name'], email=user['email'], role=role)
                 login_user(user_obj)
                 # Flash message will appear on dashboard
-                return URL_Redirect_ConnClose(conn, url_for('staff.dashboard'))
+                return URL_Redirect_ConnClose(conn, url_for('vendor.dashboard'))
             else:
                 flash('Invalid password.', 'danger')
         else:
-            flash('Invalid employee ID or not staff.', 'danger')
+            flash('Invalid employee ID or not canteen vendor.', 'danger')
     cur.close()
     conn.close()
-    return render_template('staff/login.html', form=form, special_message=special_message)
+    return render_template('vendor/login.html', form=form, special_message=special_message)
 
-@staff_bp.route('/logout')
+@vendor_bp.route('/logout')
 def logout():
     print("[DEBUG] Logout function called.", file=sys.stderr)
     logout_user()
@@ -108,13 +108,13 @@ def logout():
     session.pop('dashboard_visited', None)
     return redirect(url_for('index'))
 
-@staff_bp.route('/qr_scanner')
+@vendor_bp.route('/qr_scanner')
 @login_required
 def qr_scanner():
-    dashboard_url = url_for('staff.dashboard')
-    return render_template('staff/qr_scanner.html', dashboard_url=dashboard_url)
+    dashboard_url = url_for('vendor.dashboard')
+    return render_template('vendor/qr_scanner.html', dashboard_url=dashboard_url)
 
-@staff_bp.route('/test_db')
+@vendor_bp.route('/test_db')
 @login_required
 def test_db():
     """Test database connection and table structure"""
@@ -174,7 +174,7 @@ def test_db():
         print(f"[DEBUG] Full traceback: {tb}", file=sys.stderr)
         return jsonify({'success': False, 'error': str(e), 'traceback': tb})
 
-@staff_bp.route('/clear_biometric_data', methods=['POST'])
+@vendor_bp.route('/clear_biometric_data', methods=['POST'])
 @login_required
 def clear_biometric_data():
     from .biometric_integration import clear_biometric_attendance
@@ -188,7 +188,7 @@ def clear_biometric_data():
         return jsonify({'success': False, 'message': f'Error clearing data: {str(e)}'})
 
 
-@staff_bp.route('/clear_old_punches', methods=['POST'])
+@vendor_bp.route('/clear_old_punches', methods=['POST'])
 @login_required
 def clear_old_punches():
     from .biometric_integration import clear_old_punches_except_today
@@ -202,7 +202,7 @@ def clear_old_punches():
         return jsonify({'success': False, 'message': f'Error processing punches: {str(e)}'})
 
 
-@staff_bp.route('/sync_biometric_users', methods=['POST'])
+@vendor_bp.route('/sync_biometric_users', methods=['POST'])
 @login_required
 def sync_biometric_users():
     from .biometric_integration import sync_cms_users_to_biometric
@@ -216,7 +216,7 @@ def sync_biometric_users():
         return jsonify({'success': False, 'message': f'Error syncing users: {str(e)}'})
 
 
-@staff_bp.route('/simple_test')
+@vendor_bp.route('/simple_test')
 @login_required
 def simple_test():
     """Simple database test without complex queries"""
@@ -239,7 +239,7 @@ def simple_test():
         print(f"[DEBUG] Simple test error: {str(e)}", file=sys.stderr)
         return jsonify({'success': False, 'error': str(e)})
 
-@staff_bp.route('/create_test_booking')
+@vendor_bp.route('/create_test_booking')
 @login_required
 def create_test_booking():
     """Create a test booking for QR scanner testing"""
@@ -314,7 +314,7 @@ def create_test_booking():
         return jsonify({'success': False, 'error': str(e), 'traceback': tb})
 
 # Biometric scan function for meal consumption
-@staff_bp.route('/scan_biometric', methods=['POST'])
+@vendor_bp.route('/scan_biometric', methods=['POST'])
 @login_required
 def scan_biometric():
     from . import mysql
@@ -440,11 +440,11 @@ def scan_biometric():
             """, (booking['id'],))
             
             # Log the consumption
-            staff_id_to_use = getattr(current_user, 'id', None) or employee_db_id
+            vendor_id_to_use = getattr(current_user, 'id', None) or employee_db_id
             cur.execute("""
-                INSERT INTO meal_consumption_log (booking_id, employee_id, meal_id, location_id, staff_id)
+                INSERT INTO meal_consumption_log (booking_id, employee_id, meal_id, location_id, vendor_id)
                 VALUES (%s, %s, %s, %s, %s)
-            """, (booking['id'], employee_db_id, booking['meal_id'], booking['location_id'], staff_id_to_use))
+            """, (booking['id'], employee_db_id, booking['meal_id'], booking['location_id'], vendor_id_to_use))
             
             conn.commit()
             
@@ -489,7 +489,7 @@ def scan_biometric():
             conn.close()
 
 
-@staff_bp.route('/scan_biometric_consumption', methods=['POST'])
+@vendor_bp.route('/scan_biometric_consumption', methods=['POST'])
 @login_required
 def scan_biometric_consumption():
     from . import mysql
@@ -514,22 +514,22 @@ def scan_biometric_consumption():
             print(f"[DEBUG] JSON response: {response_data}", file=sys.stderr)
             return jsonify(response_data)
         
-        # Check if staff has location assignment for cross-location consumption
-        staff_location_id = None
-        staff_id = current_user.id
+        # Check if vendor has location assignment for cross-location consumption
+        vendor_location_id = None
+        vendor_id = current_user.id
         
         if current_user.location:
-            # Get the location ID for staff's assigned location
+            # Get the location ID for vendor's assigned location
             conn = get_db_connection(False)
             cur = conn.cursor()
             cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
-            staff_location = cur.fetchone()
-            if staff_location:
-                staff_location_id = staff_location['id']
+            vendor_location = cur.fetchone()
+            if vendor_location:
+                vendor_location_id = vendor_location['id']
         
         # Use the biometric consumption service to verify and process the meal consumption
-        # Pass staff location and ID to allow cross-location consumption
-        result = biometric_consumption.verify_consumption(user_id, staff_location_id=staff_location_id, staff_id=staff_id)
+        # Pass vendor location and ID to allow cross-location consumption
+        result = biometric_consumption.verify_consumption(user_id, vendor_location_id=vendor_location_id, vendor_id=vendor_id)
         print(f"[DEBUG] Consumption verification result: {result}", file=sys.stderr)
         
         # Update the result to indicate it came from biometric consumption verification
@@ -556,7 +556,7 @@ def scan_biometric_consumption():
             conn.close()
 
 
-@staff_bp.route('/scan_qr', methods=['POST'])
+@vendor_bp.route('/scan_qr', methods=['POST'])
 @login_required
 def scan_qr():
     from . import mysql
@@ -640,7 +640,7 @@ def scan_qr():
         print(f"[DEBUG] Status type: {type(status)}", file=sys.stderr)
         print(f"[DEBUG] Status stripped: '{status.strip()}'", file=sys.stderr)
         print(f"[DEBUG] Full booking data: {booking_to_process}", file=sys.stderr)
-        print(f"[DEBUG] Current staff location: {current_user.location}", file=sys.stderr)
+        print(f"[DEBUG] Current vendor location: {current_user.location}", file=sys.stderr)
             
         if status.strip() == 'Consumed':
             # Format the consumed_at time for display
@@ -687,25 +687,25 @@ def scan_qr():
             conn.close()
             return jsonify(response_data)
         
-        # Check if staff can verify this booking at their location
-        # If staff has a location assignment, allow verification at their location regardless of booking location
+        # Check if vendor can verify this booking at their location
+        # If vendor has a location assignment, allow verification at their location regardless of booking location
         booking_location_id = booking_to_process['location_id']
         booking_location_name = booking_to_process['location_name']
-        staff_location_name = current_user.location
+        vendor_location_name = current_user.location
         
-        # If staff has location assignment, use that location for verification
+        # If vendor has location assignment, use that location for verification
         # This allows cross-location consumption where an employee booked at one location
-        # but consumes at another location where the staff is present
+        # but consumes at another location where the vendor is present
         verification_location_id = booking_location_id
         verification_location_name = booking_location_name
         
-        if staff_location_name:
-            # Get the location ID for staff's assigned location
-            cur.execute("SELECT id FROM locations WHERE name = %s", (staff_location_name,))
-            staff_location = cur.fetchone()
-            if staff_location:
-                verification_location_id = staff_location['id']
-                verification_location_name = staff_location_name
+        if vendor_location_name:
+            # Get the location ID for vendor's assigned location
+            cur.execute("SELECT id FROM locations WHERE name = %s", (vendor_location_name,))
+            vendor_location = cur.fetchone()
+            if vendor_location:
+                verification_location_id = vendor_location['id']
+                verification_location_name = vendor_location_name
         
         # If we reach here, it means booking_to_process is 'Booked' and ready for consumption
         booking = booking_to_process # Assign to 'booking' for the rest of the function
@@ -718,7 +718,7 @@ def scan_qr():
             """, (booking['id'],))
             # Log the consumption with verification location
             cur.execute("""
-                INSERT INTO meal_consumption_log (booking_id, employee_id, meal_id, location_id, staff_id)
+                INSERT INTO meal_consumption_log (booking_id, employee_id, meal_id, location_id, vendor_id)
                 VALUES (%s, %s, %s, %s, %s)
             """, (booking['id'], booking['employee_id'], booking['meal_id'], verification_location_id, current_user.id))
             conn.commit() # Changed conn.commit() to conn.commit()
@@ -760,7 +760,7 @@ def scan_qr():
         if conn:
             conn.close()
 
-@staff_bp.route('/dashboard')
+@vendor_bp.route('/dashboard')
 @login_required
 def dashboard():
     # Show login success message on first visit to dashboard after login
@@ -777,24 +777,24 @@ def dashboard():
     conn = get_db_connection()
     cur = conn.cursor()
     
-    # Check if staff member has a specific location assignment
-    staff_location_filter = ""
-    staff_location_params = []
+    # Check if canteen vendor member has a specific location assignment
+    canteen_vendor_location_filter = ""
+    canteen_vendor_location_params = []
     
     if current_user.location:
-        staff_location_filter = "WHERE l.name = %s"
-        staff_location_params = [current_user.location]
+        canteen_vendor_location_filter = "WHERE l.name = %s"
+        canteen_vendor_location_params = [current_user.location]
     
-    # Unit-wise meal data for charts (unit-specific for staff)
+    # Unit-wise meal data for charts (unit-specific for canteen vendor)
     query = f'''
         SELECT l.name as location_name, COUNT(b.id) as meals_booked
         FROM bookings b
         JOIN locations l ON b.location_id = l.id
-        {staff_location_filter}
+        {vendor_location_filter}
         GROUP BY l.name
         ORDER BY meals_booked DESC
     '''
-    cur.execute(query, staff_location_params)
+    cur.execute(query, vendor_location_params)
     unit_data = cur.fetchall()
     desired_order = ['Unit 1', 'Unit 2', 'Unit 3', 'Unit 4', 'Unit 5', 'Pallavaram']
     unit_map = {row['location_name']: row['meals_booked'] for row in unit_data}
@@ -813,10 +813,10 @@ def dashboard():
         SELECT l.name as location_name, b.shift, COUNT(b.id) as count
         FROM bookings b
         JOIN locations l ON b.location_id = l.id
-        {staff_location_filter}
+        {canteen_vendor_location_filter}
         GROUP BY l.name, b.shift
         '''
-    cur.execute(breakdown_query, staff_location_params)
+    cur.execute(breakdown_query, canteen_vendor_location_params)
     breakdown_rows = cur.fetchall()
     meal_breakdown = {}
     for row in breakdown_rows:
@@ -839,12 +839,12 @@ def dashboard():
         ORDER BY b.shift, l.name
     '''
     # Combine location filter with date filter
-    if staff_location_filter:
-        # When staff_location_filter is "WHERE l.name = %s", we need to insert the date condition
+    if canteen_vendor_location_filter:
+        # When canteen_vendor_location_filter is "WHERE l.name = %s", we need to insert the date condition
         # Replace the WHERE with WHERE (condition) AND to add the date filter
-        formatted_filter = staff_location_filter.replace("WHERE", "WHERE (") + " AND b.booking_date = %s)"
+        formatted_filter = canteen_vendor_location_filter.replace("WHERE", "WHERE (") + " AND b.booking_date = %s)"
         final_daily_query = daily_summary_query.format(formatted_filter)
-        cur.execute(final_daily_query, staff_location_params + [today])
+        cur.execute(final_daily_query, canteen_vendor_location_params + [today])
     else:
         final_daily_query = daily_summary_query.format("WHERE b.booking_date = %s")
         cur.execute(final_daily_query, [today])
@@ -867,21 +867,21 @@ def dashboard():
         ORDER BY b.shift, l.name
     '''
     # Combine location filter with date filter
-    if staff_location_filter:
-        # When staff_location_filter is "WHERE l.name = %s", we need to insert the date condition
+    if canteen_vendor_location_filter:
+        # When canteen_vendor_location_filter is "WHERE l.name = %s", we need to insert the date condition
         # Replace the WHERE with WHERE (condition) AND to add the date filter
-        formatted_filter = staff_location_filter.replace("WHERE", "WHERE (") + " AND b.booking_date >= %s AND b.booking_date < %s)"
+        formatted_filter = canteen_vendor_location_filter.replace("WHERE", "WHERE (") + " AND b.booking_date >= %s AND b.booking_date < %s)"
         final_monthly_query = monthly_summary_query.format(formatted_filter)
-        cur.execute(final_monthly_query, staff_location_params + [first_day, last_day])
+        cur.execute(final_monthly_query, canteen_vendor_location_params + [first_day, last_day])
     else:
         final_monthly_query = monthly_summary_query.format("WHERE b.booking_date >= %s AND b.booking_date < %s")
         cur.execute(final_monthly_query, [first_day, last_day])
     monthly_summary_data = cur.fetchall()
     cur.close()
     conn.close()
-    return render_template('staff/dashboard.html', pie_labels=pie_labels, pie_values=pie_values, meal_breakdown=meal_breakdown, summary_data=summary_data, monthly_summary_data=monthly_summary_data)
+    return render_template('vendor/dashboard.html', pie_labels=pie_labels, pie_values=pie_values, meal_breakdown=meal_breakdown, summary_data=summary_data, monthly_summary_data=monthly_summary_data)
 
-@staff_bp.route('/summary')
+@vendor_bp.route('/summary')
 @login_required
 def summary():
     from . import mysql
@@ -889,13 +889,13 @@ def summary():
     conn = get_db_connection()
     cur = conn.cursor()
     
-    # Check if staff member has a specific location assignment
-    staff_location_filter = ""
-    staff_location_params = []
+    # Check if canteen vendor member has a specific location assignment
+    canteen_vendor_location_filter = ""
+    canteen_vendor_location_params = []
     
     if current_user.location:
-        staff_location_filter = "AND l.name = %s"
-        staff_location_params = [current_user.location]
+        canteen_vendor_location_filter = "AND l.name = %s"
+        canteen_vendor_location_params = [current_user.location]
     
     summary_query = f'''
         SELECT b.shift, l.name as location, 
@@ -903,17 +903,17 @@ def summary():
                SUM(CASE WHEN b.status = 'Booked' THEN 1 ELSE 0 END) as booked
         FROM bookings b
         JOIN locations l ON b.location_id = l.id
-        WHERE b.booking_date = %s {staff_location_filter}
+        WHERE b.booking_date = %s {canteen_vendor_location_filter}
         GROUP BY b.shift, l.name
         ORDER BY b.shift, l.name
     '''
-    cur.execute(summary_query, [today] + staff_location_params)
+    cur.execute(summary_query, [today] + canteen_vendor_location_params)
     summary_data = cur.fetchall()
     cur.close()
     conn.close()
-    return render_template('staff/summary.html', summary_data=summary_data)
+    return render_template('vendor/summary.html', summary_data=summary_data)
 
-@staff_bp.route('/summary/export')
+@vendor_bp.route('/summary/export')
 @login_required
 def export_summary_csv():
     from . import mysql
@@ -924,13 +924,13 @@ def export_summary_csv():
     conn = get_db_connection()
     cur = conn.cursor()
     
-    # Check if staff member has a specific location assignment
-    staff_location_filter = ""
-    staff_location_params = []
+    # Check if vendor member has a specific location assignment
+    vendor_location_filter = ""
+    vendor_location_params = []
     
     if current_user.location:
-        staff_location_filter = "AND l.name = %s"
-        staff_location_params = [current_user.location]
+        vendor_location_filter = "AND l.name = %s"
+        vendor_location_params = [current_user.location]
     
     summary_query = f'''
         SELECT b.shift, l.name as location, 
@@ -938,11 +938,11 @@ def export_summary_csv():
                SUM(CASE WHEN b.status = 'Booked' THEN 1 ELSE 0 END) as booked
         FROM bookings b
         JOIN locations l ON b.location_id = l.id
-        WHERE b.booking_date = %s {staff_location_filter}
+        WHERE b.booking_date = %s {vendor_location_filter}
         GROUP BY b.shift, l.name
         ORDER BY b.shift, l.name
     '''
-    cur.execute(summary_query, [today] + staff_location_params)
+    cur.execute(summary_query, [today] + vendor_location_params)
     summary_data = cur.fetchall()
     # Prepare CSV
     si = StringIO()
@@ -959,11 +959,11 @@ def export_summary_csv():
         output,
         mimetype='text/csv',
         headers={
-            'Content-Disposition': f'attachment;filename=staff_daily_summary_{today}.csv'
+            'Content-Disposition': f'attachment;filename=vendor_daily_summary_{today}.csv'
         }
     )
 
-@staff_bp.route('/monthly_summary')
+@vendor_bp.route('/monthly_summary')
 @login_required
 def monthly_summary():
     from datetime import date
@@ -990,9 +990,9 @@ def monthly_summary():
     summary_data = cur.fetchall()
     cur.close()
     conn.close()
-    return render_template('staff/monthly_summary.html', summary_data=summary_data)
+    return render_template('vendor/monthly_summary.html', summary_data=summary_data)
 
-@staff_bp.route('/monthly_summary/export')
+@vendor_bp.route('/monthly_summary/export')
 @login_required
 def export_monthly_summary_csv():
     import csv
@@ -1035,12 +1035,12 @@ def export_monthly_summary_csv():
         output,
         mimetype='text/csv',
         headers={
-            'Content-Disposition': f'attachment;filename=staff_monthly_summary_{today.strftime('%Y_%m')}.csv'
+            'Content-Disposition': f'attachment;filename=vendor_monthly_summary_{today.strftime('%Y_%m')}.csv'
         }
     )
 
-@staff_bp.route('/roles', methods=['GET', 'POST'])
+@vendor_bp.route('/roles', methods=['GET', 'POST'])
 @login_required
 def manage_roles():
     # TODO: Role management for supervisors
-    return render_template('staff/roles.html')
+    return render_template('vendor/roles.html')

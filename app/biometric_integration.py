@@ -339,7 +339,7 @@ class BiometricMealConsumption:
         finally:
             self.conn = None
 
-    def verify_consumption(self, user_id, staff_location_id=None, staff_id=None):
+    def verify_consumption(self, user_id, vendor_location_id=None, vendor_id=None):
         """Verify meal consumption for a user based on their biometric ID"""
         conn_db = None
         cur = None
@@ -433,10 +433,10 @@ class BiometricMealConsumption:
                 }
             
             # Determine location for consumption logging
-            # If staff_location_id is provided, use that location (for cross-location consumption)
+            # If vendor_location_id is provided, use that location (for cross-location consumption)
             # Otherwise, use the original booking location
-            consumption_location_id = booking['location_id'] if staff_location_id is None else staff_location_id
-            consumption_location_name = booking['location_name'] if staff_location_id is None else self._get_location_name_by_id(cur, staff_location_id)
+            consumption_location_id = booking['location_id'] if vendor_location_id is None else vendor_location_id
+            consumption_location_name = booking['location_name'] if vendor_location_id is None else self._get_location_name_by_id(cur, vendor_location_id)
             
             # Update booking status to consumed
             cur.execute("""
@@ -447,9 +447,9 @@ class BiometricMealConsumption:
             
             # Log the consumption
             cur.execute("""
-                INSERT INTO meal_consumption_log (booking_id, employee_id, meal_id, location_id, staff_id)
+                INSERT INTO meal_consumption_log (booking_id, employee_id, meal_id, location_id, vendor_id)
                 VALUES (%s, %s, %s, %s, %s)
-            """, (booking['id'], employee_db_id, booking['meal_id'], consumption_location_id, staff_id))  # staff_id can be None when called from polling service
+            """, (booking['id'], employee_db_id, booking['meal_id'], consumption_location_id, vendor_id))  # vendor_id can be None when called from polling service
             
             conn_db.commit()
             
@@ -524,8 +524,8 @@ class BiometricMealConsumption:
                         )
 
                         # Verify meal consumption based on punch
-                        # For background polling service, use default parameters (no staff location override)
-                        result = self.verify_consumption(user_id, staff_location_id=None, staff_id=None)
+                        # For background polling service, use default parameters (no vendor location override)
+                        result = self.verify_consumption(user_id, vendor_location_id=None, vendor_id=None)
                         
                         if result['success']:
                             self.logger.info(f"🍽️ Meal consumed successfully for {name} (ID: {user_id})")

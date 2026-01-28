@@ -1,6 +1,6 @@
 
  {% extends 'base_logged_in.html' %}
-{% block title %}Staff Dashboard{% endblock %}
+{% block title %}Vendor Dashboard{% endblock %}
 {% block main_content %}
 <style>
   .back-btn {
@@ -240,7 +240,7 @@
     white-space: nowrap;
   }
 </style>
-<button class="back-btn" id="logoutBtn" data-href="{{ url_for('staff.logout') }}" title="{{ _('Logout') }}">
+<button class="back-btn" id="logoutBtn" data-href="{{ url_for('vendor.logout') }}" title="{{ _('Logout') }}">
   <i class="bi bi-box-arrow-right"></i>
 </button>
 <script>
@@ -258,18 +258,18 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="col-12">
       <div class="card dashboard-card">
         <div class="card-header text-center">
-          📊 Staff Dashboard
+          📊 Vendor Dashboard
         </div>
         <div class="card-body">
           <div class="row dashboard-links justify-content-center mb-4">
             <div class="col-lg-4 col-md-6 col-sm-12">
-              <a href="{{ url_for('staff.qr_scanner') }}" class="btn btn-qr-scanner w-100">QR Code Scanner</a>
+              <a href="{{ url_for('vendor.qr_scanner') }}" class="btn btn-qr-scanner w-100">QR Code Scanner</a>
             </div>
             <div class="col-lg-4 col-md-6 col-sm-12">
-              <a href="{{ url_for('staff.summary') }}" class="btn btn-summary w-100">Daily Summary</a>
+              <a href="{{ url_for('vendor.summary') }}" class="btn btn-summary w-100">Daily Summary</a>
             </div>
             <div class="col-lg-4 col-md-6 col-sm-12">
-              <a href="{{ url_for('staff.monthly_summary') }}" class="btn btn-summary w-100">Monthly Summary</a>
+              <a href="{{ url_for('vendor.monthly_summary') }}" class="btn btn-summary w-100">Monthly Summary</a>
             </div>
           </div>
 

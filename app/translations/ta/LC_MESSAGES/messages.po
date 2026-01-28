@@ -63,11 +63,11 @@ msgid "Violin Technology Employee Login"
 msgstr "வயலின் டெக்னாலஜி ஊழியர் உள்நுழைவு"
 
 #: app/templates/index.html:340
-msgid "Canteen Supervisor Login"
+msgid "Canteen Vendor Login"
 msgstr "கேண்டீன் மேற்பார்வையாளர் உள்நுழைவு"
 
 #: app/templates/index.html:346
-msgid "Admin/HR/Finance Login"
+msgid "Admin/Finance Login"
 msgstr "நிர்வாகி/மனிதவளம்/நிதி உள்நுழைவு"
 
 #: app/templates/index.html:352

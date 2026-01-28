@@ -174,9 +174,9 @@
 </button>
 <div class="container" style="max-width: 1100px;">
   <h2 class="mb-2 fw-bold" style="text-align:left;">
-    {% if current_user.role == 'Accounts' %}<span aria-label="Dashboard">📊 Dashboard</span>{% elif current_user.role == 'Admin' and current_user.employee_id == 'a001' %} <span aria-label="Admin Dashboard">📊 Admin Dashboard</span>{% elif current_user.role == 'Admin' and current_user.location %} <span aria-label="Admin Dashboard for {{ current_user.location }}">📊 Admin Dashboard ({{ current_user.location }})</span>{% else %} <span aria-label="Admin Dashboard">📊 Admin Dashboard</span>{% endif %}
+    {% if current_user.role == 'Unit-wise Admin' %}<span aria-label="Dashboard">📊 Dashboard</span>{% elif current_user.role == 'Master Admin' and current_user.employee_id == 'a001' %} <span aria-label="Admin Dashboard">📊 Admin Dashboard</span>{% elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001' %} <span aria-label="Admin Dashboard for {{ current_user.location }}">📊 Admin Dashboard ({{ current_user.location }})</span>{% else %} <span aria-label="Admin Dashboard">📊 Admin Dashboard</span>{% endif %}
   </h2>
-  {% if current_user.role == 'Admin' %}
+  {% if current_user.role == 'Master Admin' %}
   <div class="card my-4">
     <div class="card-body">
       <h5 class="card-title">Post a Special Message</h5>
@@ -258,7 +258,7 @@
             <a href="{{ url_for('admin.daily_unit_report') }}" class="btn btn-sm btn-info ms-2">
               <i class="bi bi-file-earmark-text me-1"></i> Daily Report (All Units)
             </a>
-            {% elif current_user.role == 'Admin' and current_user.location %}
+            {% elif current_user.role == 'Unit-wise Admin' and current_user.location %}
             <a href="{{ url_for('admin.monthly_unit_report') }}" class="btn btn-sm btn-primary">
               <i class="bi bi-file-earmark-bar-graph me-1"></i> Monthly Report (Unit)
             </a>

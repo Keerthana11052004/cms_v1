@@ -60,7 +60,7 @@ def load_user(user_id):
         cur.execute("SELECT * FROM employees WHERE id=%s", (user_id,))
         user = cur.fetchone()
         if user:
-            role_map = {1: 'Employee', 2: 'Staff', 3: 'Supervisor', 4: 'HR', 5: 'Accounts', 6: 'Admin'}
+            role_map = {1: 'Employee', 2: 'Canteen Vendor', 3: 'Unit-wise Admin', 6: 'Master Admin'}
             role = role_map.get(user['role_id'], 'Employee')
 
             department, location = None, None
@@ -130,7 +130,7 @@ def create_app():
     # Register blueprints
     from .cms import cms_blueprint
     from .employee import employee_bp
-    from .staff import staff_bp
+    from .vendor import vendor_bp
     from .admin import admin_bp, init_admin_config
 
     init_admin_config(app)
@@ -139,7 +139,7 @@ def create_app():
     url_prefix = app.config['URL_PREFIX']
     app.register_blueprint(cms_blueprint, url_prefix=f'/{url_prefix}')
     app.register_blueprint(employee_bp, url_prefix=f'/{url_prefix}/employee')
-    app.register_blueprint(staff_bp, url_prefix=f'/{url_prefix}/staff')
+    app.register_blueprint(vendor_bp, url_prefix=f'/{url_prefix}/vendor')
     app.register_blueprint(admin_bp, url_prefix=f'/{url_prefix}/admin')
 
     # Start biometric services after app initialization

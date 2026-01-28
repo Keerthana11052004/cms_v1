@@ -15,16 +15,11 @@
       </div>
       <div class="sidebar-content">
         <ul class="nav flex-column">
-          {% if current_user.role == 'Admin' %}
+          {% if current_user.role == 'Master Admin' %}
             <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.dashboard') }}"><span class="menu-icon"><i class="bi bi-speedometer2"></i></span><span class="menu-label">Dashboard</span></a></li>
-            {% if current_user.role == 'Admin' and current_user.location and current_user.employee_id != 'a001' %}
-            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.add_vendor_item') }}"><span class="menu-icon"><i class="bi bi-plus-circle"></i></span><span class="menu-label">Add Vendor Item</span></a></li>
-            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.add_outsider_meal') }}"><span class="menu-icon"><i class="bi bi-people-fill"></i></span><span class="menu-label">Add Outsider Meal</span></a></li>
-            {% endif %}
             <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.add_user') }}"><span class="menu-icon"><i class="bi bi-person-plus"></i></span><span class="menu-label">Add User</span></a></li>
             <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.vendor_report_unit_wise') }}"><span class="menu-icon"><i class="bi bi-truck"></i></span><span class="menu-label">Outsider Meal Report</span></a></li>
             <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.vendor_report') }}"><span class="menu-icon"><i class="bi bi-file-text"></i></span><span class="menu-label">Vendor Report</span></a></li>
-            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.plant_access_dashboard') }}"><span class="menu-icon"><i class="bi bi-building"></i></span><span class="menu-label">Plant Access</span></a></li>
             <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.manage_missed_tokens') }}"><span class="menu-icon"><i class="bi bi-ticket-detailed"></i></span><span class="menu-label">Missed Tokens</span></a></li>
             <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.export') }}"><span class="menu-icon"><i class="bi bi-file-earmark-arrow-down"></i></span><span class="menu-label">Export</span></a></li>
             {% if current_user.employee_id == 'a001' %}
@@ -32,9 +27,15 @@
             {% endif %}
             <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.profile') }}"><span class="menu-icon"><i class="bi bi-person"></i></span><span class="menu-label">Profile</span></a></li>
             <li class="nav-item mt-1"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.logout') }}"><span class="menu-icon"><i class="bi bi-box-arrow-right"></i></span><span class="menu-label">{{ _('Logout') }}</span></a></li>
-          {% elif current_user.role == 'Accounts' or (current_user.role == 'Admin' and current_user.department and current_user.department|lower == 'finance') %}
+          {% elif current_user.role == 'Unit-wise Admin' %}
             <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.dashboard') }}"><span class="menu-icon"><i class="bi bi-speedometer2"></i></span><span class="menu-label">Dashboard</span></a></li>
+            {% if current_user.location and current_user.employee_id != 'a001' %}
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.add_vendor_item') }}"><span class="menu-icon"><i class="bi bi-plus-circle"></i></span><span class="menu-label">Add Vendor Item</span></a></li>
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.add_outsider_meal') }}"><span class="menu-icon"><i class="bi bi-people-fill"></i></span><span class="menu-label">Add Outsider Meal</span></a></li>
+            {% endif %}
             <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.cost_subsidy') }}"><span class="menu-icon"><i class="bi bi-cash-coin"></i></span><span class="menu-label">Cost & Subsidy</span></a></li>
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('vendor.manage_roles') }}"><span class="menu-icon"><i class="bi bi-person-gear"></i></span><span class="menu-label">Role Management</span></a></li>
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.profile') }}"><span class="menu-icon"><i class="bi bi-person"></i></span><span class="menu-label">Profile</span></a></li>
             <li class="nav-item mt-1"><a class="nav-link d-flex align-items-center" href="{{ url_for('admin.logout') }}"><span class="menu-icon"><i class="bi bi-box-arrow-right"></i></span><span class="menu-label">{{ _('Logout') }}</span></a></li>
           {% elif current_user.role == 'Employee' %}
             <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.dashboard') }}"><span class="menu-icon"><i class="bi bi-speedometer2"></i></span><span class="menu-label">Dashboard</span></a></li>
@@ -43,15 +44,12 @@
             <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.view_menu') }}"><span class="menu-icon"><i class="bi bi-card-list"></i></span><span class="menu-label">Today's Meal</span></a></li>
             <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.profile') }}"><span class="menu-icon"><i class="bi bi-person"></i></span><span class="menu-label">Profile</span></a></li>
             <li class="nav-item mt-1"><a class="nav-link d-flex align-items-center" href="{{ url_for('employee.logout') }}"><span class="menu-icon"><i class="bi bi-box-arrow-right"></i></span><span class="menu-label">{{ _('Logout') }}</span></a></li>
-          {% elif current_user.role in ['Staff', 'Supervisor'] %}
-            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.dashboard') }}"><span class="menu-icon"><i class="bi bi-speedometer2"></i></span><span class="menu-label">Dashboard</span></a></li>
-            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.add_menu') }}"><span class="menu-icon"><i class="bi bi-card-list"></i></span><span class="menu-label">Post Menu</span></a></li>
-            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.qr_scanner') }}"><span class="menu-icon"><i class="bi bi-fingerprint"></i></span><span class="menu-label">Biometric Scanner</span></a></li>
-            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.summary') }}"><span class="menu-icon"><i class="bi bi-clipboard-data"></i></span><span class="menu-label">Daily Summary</span></a></li>
-            {% if current_user.role == 'Supervisor' %}
-              <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.manage_roles') }}"><span class="menu-icon"><i class="bi bi-person-gear"></i></span><span class="menu-label">Role Management</span></a></li>
-            {% endif %}
-            <li class="nav-item mt-1"><a class="nav-link d-flex align-items-center" href="{{ url_for('staff.logout') }}"><span class="menu-icon"><i class="bi bi-box-arrow-right"></i></span><span class="menu-label">{{ _('Logout') }}</span></a></li>
+          {% elif current_user.role == 'Canteen Vendor' %}
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('vendor.dashboard') }}"><span class="menu-icon"><i class="bi bi-speedometer2"></i></span><span class="menu-label">Dashboard</span></a></li>
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('vendor.add_menu') }}"><span class="menu-icon"><i class="bi bi-card-list"></i></span><span class="menu-label">Post Menu</span></a></li>
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('vendor.qr_scanner') }}"><span class="menu-icon"><i class="bi bi-fingerprint"></i></span><span class="menu-label">Biometric Scanner</span></a></li>
+            <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ url_for('vendor.summary') }}"><span class="menu-icon"><i class="bi bi-clipboard-data"></i></span><span class="menu-label">Daily Summary</span></a></li>
+            <li class="nav-item mt-1"><a class="nav-link d-flex align-items-center" href="{{ url_for('vendor.logout') }}"><span class="menu-icon"><i class="bi bi-box-arrow-right"></i></span><span class="menu-label">{{ _('Logout') }}</span></a></li>
           {% endif %}
         </ul>
       </div>

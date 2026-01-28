@@ -42,7 +42,7 @@ def login():
     if form.validate_on_submit():
         employee_id = form.employee_id.data
         password = form.password.data
-        cur.execute("SELECT * FROM employees WHERE employee_id=%s AND role_id IN (5,6) AND is_active=1", (employee_id,))
+        cur.execute("SELECT * FROM employees WHERE employee_id=%s AND role_id IN (3,6) AND is_active=1", (employee_id,))
         user = cur.fetchone()
         if user and password:
             import hashlib
@@ -94,10 +94,10 @@ def dashboard():
 
     # Apply unit-wise filter if the user is a unit admin
     location_filter_clause = ""
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id_row = cur.fetchone()
         if location_id_row:
@@ -159,9 +159,9 @@ def dashboard():
         WHERE booking_date >= CURDATE() - INTERVAL 12 MONTH
     """
     monthwise_params = []
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id_row = cur.fetchone()
         if location_id_row:
@@ -371,7 +371,7 @@ def daily_unit_report():
     where_conditions = ['b.booking_date = %s']
     params.append(report_date)
 
-    if current_user.role == 'Admin' and current_user.employee_id != 'a001' and current_user.location:
+    if current_user.role == 'Admin' and current_user.location and current_user.employee_id != 'a001':
         where_conditions.append('l.name = %s')
         params.append(current_user.location)
 
@@ -409,10 +409,10 @@ def api_booked_meals_by_shift():
         WHERE 1=1
     """
     params = []
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -459,10 +459,10 @@ def employee_reports():
     params = []
     where_conditions = []
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -527,10 +527,10 @@ def dept_location_reports():
     params = []
     where_conditions = []
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -1155,7 +1155,7 @@ def download_csv_daily_unit_report():
     where_conditions = ['b.booking_date = %s']
     params.append(report_date)
 
-    if current_user.role == 'Admin' and current_user.employee_id != 'a001' and current_user.location:
+    if current_user.role == 'Admin' and current_user.location and current_user.employee_id != 'a001':
         where_conditions.append('l.name = %s')
         params.append(current_user.location)
 
@@ -1350,10 +1350,10 @@ def download_csv_employee_reports():
     params = []
     where_conditions = []
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -1424,10 +1424,10 @@ def download_csv_dept_location_reports():
     params = []
     where_conditions = []
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -1756,7 +1756,7 @@ def download_csv_daily_unit_report():
     where_conditions = ['b.booking_date = %s']
     params.append(report_date)
 
-    if current_user.role == 'Admin' and current_user.employee_id != 'a001' and current_user.location:
+    if current_user.role == 'Admin' and current_user.location and current_user.employee_id != 'a001':
         where_conditions.append('l.name = %s')
         params.append(current_user.location)
 
@@ -1951,10 +1951,10 @@ def download_csv_employee_reports():
     params = []
     where_conditions = []
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -2025,10 +2025,10 @@ def download_csv_dept_location_reports():
     params = []
     where_conditions = []
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -2357,7 +2357,7 @@ def download_csv_daily_unit_report():
     where_conditions = ['b.booking_date = %s']
     params.append(report_date)
 
-    if current_user.role == 'Admin' and current_user.employee_id != 'a001' and current_user.location:
+    if current_user.role == 'Admin' and current_user.location and current_user.employee_id != 'a001':
         where_conditions.append('l.name = %s')
         params.append(current_user.location)
 
@@ -2552,10 +2552,10 @@ def download_csv_employee_reports():
     params = []
     where_conditions = []
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -2626,10 +2626,10 @@ def download_csv_dept_location_reports():
     params = []
     where_conditions = []
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -2958,7 +2958,7 @@ def download_csv_daily_unit_report():
     where_conditions = ['b.booking_date = %s']
     params.append(report_date)
 
-    if current_user.role == 'Admin' and current_user.employee_id != 'a001' and current_user.location:
+    if current_user.role == 'Admin' and current_user.location and current_user.employee_id != 'a001':
         where_conditions.append('l.name = %s')
         params.append(current_user.location)
 
@@ -3153,10 +3153,10 @@ def download_csv_employee_reports():
     params = []
     where_conditions = []
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -3227,10 +3227,10 @@ def download_csv_dept_location_reports():
     params = []
     where_conditions = []
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -3559,7 +3559,7 @@ def download_csv_daily_unit_report():
     where_conditions = ['b.booking_date = %s']
     params.append(report_date)
 
-    if current_user.role == 'Admin' and current_user.employee_id != 'a001' and current_user.location:
+    if current_user.role == 'Admin' and current_user.location and current_user.employee_id != 'a001':
         where_conditions.append('l.name = %s')
         params.append(current_user.location)
 
@@ -3754,10 +3754,10 @@ def download_csv_employee_reports():
     params = []
     where_conditions = []
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -3828,10 +3828,10 @@ def download_csv_dept_location_reports():
     params = []
     where_conditions = []
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -4160,7 +4160,7 @@ def download_csv_daily_unit_report():
     where_conditions = ['b.booking_date = %s']
     params.append(report_date)
 
-    if current_user.role == 'Admin' and current_user.employee_id != 'a001' and current_user.location:
+    if current_user.role == 'Admin' and current_user.location and current_user.employee_id != 'a001':
         where_conditions.append('l.name = %s')
         params.append(current_user.location)
 
@@ -4355,10 +4355,10 @@ def download_csv_employee_reports():
     params = []
     where_conditions = []
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -4429,10 +4429,10 @@ def download_csv_dept_location_reports():
     params = []
     where_conditions = []
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -4761,7 +4761,7 @@ def download_csv_daily_unit_report():
     where_conditions = ['b.booking_date = %s']
     params.append(report_date)
 
-    if current_user.role == 'Admin' and current_user.employee_id != 'a001' and current_user.location:
+    if current_user.role == 'Admin' and current_user.location and current_user.employee_id != 'a001':
         where_conditions.append('l.name = %s')
         params.append(current_user.location)
 
@@ -4956,10 +4956,10 @@ def download_csv_employee_reports():
     params = []
     where_conditions = []
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -5030,10 +5030,10 @@ def download_csv_dept_location_reports():
     params = []
     where_conditions = []
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -5362,7 +5362,7 @@ def download_csv_daily_unit_report():
     where_conditions = ['b.booking_date = %s']
     params.append(report_date)
 
-    if current_user.role == 'Admin' and current_user.employee_id != 'a001' and current_user.location:
+    if current_user.role == 'Admin' and current_user.location and current_user.employee_id != 'a001':
         where_conditions.append('l.name = %s')
         params.append(current_user.location)
 
@@ -5557,10 +5557,10 @@ def download_csv_employee_reports():
     params = []
     where_conditions = []
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -5631,10 +5631,10 @@ def download_csv_dept_location_reports():
     params = []
     where_conditions = []
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -5963,7 +5963,7 @@ def download_csv_daily_unit_report():
     where_conditions = ['b.booking_date = %s']
     params.append(report_date)
 
-    if current_user.role == 'Admin' and current_user.employee_id != 'a001' and current_user.location:
+    if current_user.role == 'Admin' and current_user.location and current_user.employee_id != 'a001':
         where_conditions.append('l.name = %s')
         params.append(current_user.location)
 
@@ -6158,10 +6158,10 @@ def download_csv_employee_reports():
     params = []
     where_conditions = []
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -6232,10 +6232,10 @@ def download_csv_dept_location_reports():
     params = []
     where_conditions = []
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -6564,7 +6564,7 @@ def download_csv_daily_unit_report():
     where_conditions = ['b.booking_date = %s']
     params.append(report_date)
 
-    if current_user.role == 'Admin' and current_user.employee_id != 'a001' and current_user.location:
+    if current_user.role == 'Admin' and current_user.location and current_user.employee_id != 'a001':
         where_conditions.append('l.name = %s')
         params.append(current_user.location)
 
@@ -6759,10 +6759,10 @@ def download_csv_employee_reports():
     params = []
     where_conditions = []
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -6833,10 +6833,10 @@ def download_csv_dept_location_reports():
     params = []
     where_conditions = []
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute("SELECT id FROM locations WHERE name = %s", (current_user.location,))
         location_id = cur.fetchone()
         if location_id:
@@ -7040,11 +7040,11 @@ def download_csv_vendor_report_outsider_wise():
     count_params = []
     where_conditions = []
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For master admin 'a001', show all unit data
         print("[DEBUG] User is master admin, showing all units")
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         print(f"[DEBUG] User location: {current_user.location}")
         where_conditions.append('unit = %s')
         params.append(current_user.location)
@@ -7150,10 +7150,10 @@ def vendor_report():
     where_conditions = []
 
 
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For master admin 'a001', show all unit data
         pass
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         print(f"[DEBUG] User location: {current_user.location}")
         where_conditions.append('unit = %s')
         params.append(current_user.location)
@@ -7439,10 +7439,10 @@ def export_vendor_report_unit_wise():
         params = []
         where_conditions = []
         
-        if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+        if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
             # For admin user 'a001', show all unit data
             pass
-        elif current_user.role == 'Admin' and current_user.location:
+        elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
             where_conditions.append('l.name = %s')
             params.append(current_user.location)
         
@@ -7862,12 +7862,12 @@ def add_user():
     form.department_id.choices = [(d['id'], d['name']) for d in departments]
     
     # Filter locations based on current user's unit if they are a unit admin
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         cur.execute('SELECT id, name FROM locations')
         locations = cur.fetchall()
         form.location_id.choices = [(l['id'], l['name']) for l in locations]
-    elif current_user.role == 'Admin' and current_user.location:
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
         cur.execute('SELECT id, name FROM locations WHERE name = %s', (current_user.location,))
         locations = cur.fetchall()
         if not locations:
@@ -7880,16 +7880,16 @@ def add_user():
         locations = cur.fetchall()
         form.location_id.choices = [(l['id'], l['name']) for l in locations]
 
-    cur.execute('SELECT id, name FROM roles WHERE name IN ("Admin", "Employee", "Staff", "Accounts")')
+    cur.execute('SELECT id, name FROM roles WHERE name IN ("Admin", "Employee", "Vendor", "Accounts")')
     roles = cur.fetchall()
     
     # Filter roles if the user is a unit admin
-    if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+    if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
         # For admin user 'a001', show all unit data
         form.role_id.choices = [(r['id'], r['name']) for r in roles]
-    elif current_user.role == 'Admin' and current_user.location:
-        # Unit admins can only add Employees and Staff within their unit
-        form.role_id.choices = [(r['id'], r['name']) for r in roles if r['name'] in ["Employee", "Staff"]]
+    elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
+        # Unit admins can only add Employees and Vendor within their unit
+        form.role_id.choices = [(r['id'], r['name']) for r in roles if r['name'] in ["Employee", "Vendor"]]
     else:
         form.role_id.choices = [(r['id'], r['name']) for r in roles]
 
@@ -7904,10 +7904,10 @@ def add_user():
         is_active = 1 if form.is_active.data else 0
 
         # Enforce location for unit admins
-        if current_user.role == 'Admin' and current_user.employee_id == 'a001':
+        if current_user.role == 'Master Admin' and current_user.employee_id == 'a001':
             # For admin user 'a001', no location or role restrictions
             pass
-        elif current_user.role == 'Admin' and current_user.location:
+        elif current_user.role == 'Master Admin' and current_user.location and current_user.employee_id != 'a001':
             cur.execute('SELECT id FROM locations WHERE name = %s', (current_user.location,))
             allowed_location_id = cur.fetchone()
             if not allowed_location_id or allowed_location_id['id'] != location_id:
@@ -7916,8 +7916,8 @@ def add_user():
             # Also ensure they don't try to add an Admin or Accounts role
             cur.execute('SELECT name FROM roles WHERE id = %s', (role_id,))
             selected_role_name = cur.fetchone()['name']
-            if selected_role_name not in ["Employee", "Staff"]:
-                flash('You can only add users with Employee or Staff roles.', 'danger')
+            if selected_role_name not in ["Employee", "Vendor"]:
+                flash('You can only add users with Employee or Vendor roles.', 'danger')
                 return redirect(url_for('admin.add_user'))
 
         password_hash = hashlib.sha256(password.encode()).hexdigest() if password else None

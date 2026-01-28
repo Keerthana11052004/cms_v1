@@ -143,7 +143,7 @@
   
   /* Responsive styles omitted for brevity, copy from summary.html if needed */
 </style>
-<button class="back-btn" id="backBtn" data-href="{{ url_for('staff.dashboard') }}" title="Back to Dashboard">
+<button class="back-btn" id="backBtn" data-href="{{ url_for('vendor.dashboard') }}" title="Back to Dashboard">
   <i class="bi bi-arrow-left"></i>
 </button>
 <script>
@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', function() {
               <!-- Previous Button -->
               {% if page > 1 %}
               <li class="page-item">
-                <a class="page-link" href="{{ url_for('staff.monthly_summary', page=page-1) }}" aria-label="Previous">
+                <a class="page-link" href="{{ url_for('vendor.monthly_summary', page=page-1) }}" aria-label="Previous">
                   <span aria-hidden="true">&laquo;</span>
                 </a>
               </li>
@@ -225,7 +225,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </li>
                 {% elif p > page - 3 and p < page + 3 %} <!-- Show nearby pages -->
                 <li class="page-item">
-                  <a class="page-link" href="{{ url_for('staff.monthly_summary', page=p) }}">{{ p }}</a>
+                  <a class="page-link" href="{{ url_for('vendor.monthly_summary', page=p) }}">{{ p }}</a>
                 </li>
                 {% endif %}
               {% endfor %}
@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', function() {
               <!-- Next Button -->
               {% if page < total_pages %}
               <li class="page-item">
-                <a class="page-link" href="{{ url_for('staff.monthly_summary', page=page+1) }}" aria-label="Next">
+                <a class="page-link" href="{{ url_for('vendor.monthly_summary', page=page+1) }}" aria-label="Next">
                   <span aria-hidden="true">&raquo;</span>
                 </a>
               </li>
@@ -246,7 +246,7 @@ document.addEventListener('DOMContentLoaded', function() {
           </nav>
           {% endif %}
           <div class="mt-4 text-end">
-            <a href="{{ url_for('staff.export_monthly_summary_csv') }}" class="btn btn-outline-primary">Export</a>
+            <a href="{{ url_for('vendor.export_monthly_summary_csv') }}" class="btn btn-outline-primary">Export</a>
             <button class="btn btn-outline-secondary" onclick="window.print()">Print</button>
           </div>
         </div>
